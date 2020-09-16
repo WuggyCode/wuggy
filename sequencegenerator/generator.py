@@ -76,7 +76,7 @@ class Generator(object):
             fields=line.strip().split('\t')
             word=fields[0]
             frequency_per_million=fields[-1]
-            if floor(float(frequency_per_million))>cutoff:
+            if float(frequency_per_million)>cutoff:
                 self.word_lexicon[word[0],len(word)].append(word)
         data_file.close()
         self.clear_status()
@@ -93,7 +93,7 @@ class Generator(object):
             fields=line.strip().split('\t')
             word=fields[0]
             frequency_per_million=fields[-1]
-            if floor(float(frequency_per_million))>cutoff:
+            if float(frequency_per_million)>cutoff:
                 self.neighbor_lexicon.append(word)
         data_file.close()
         self.clear_status()

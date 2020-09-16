@@ -1,0 +1,2 @@
+pylint==2.6.0
+python-Levenshtein==0.12.0

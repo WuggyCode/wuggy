@@ -1,5 +1,5 @@
 # Orthographic Italian
-public_name='Orthographic Italian'
+# pylint: disable=unused-wildcard-import
 default_data='orthographic_italian.txt'
 default_neighbor_lexicon='orthographic_italian.txt'
 default_word_lexicon='orthographic_italian.txt'

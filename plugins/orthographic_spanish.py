@@ -1,5 +1,5 @@
 # Orthographic Spanish
-public_name='Orthographic Spanish'
+# pylint: disable=unused-wildcard-import
 default_data='orthographic_spanish.txt'
 default_neighbor_lexicon='orthographic_spanish.txt'
 default_word_lexicon='orthographic_spanish.txt'

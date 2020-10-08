@@ -1,5 +1,5 @@
 # Phonetic English
-public_name='Phonetic English (CMU)'
+# pylint: disable=unused-wildcard-import
 default_data='phonetic_english_cmu.txt'
 default_neighbor_lexicon='phonetic_english_cmu.txt'
 default_word_lexicon='phonetic_english_cmu.txt'

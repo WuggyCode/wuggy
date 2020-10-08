@@ -1,5 +1,5 @@
 # Phonetic French
-public_name='Phonetic French'
+# pylint: disable=unused-wildcard-import
 default_data='phonetic_french.txt'
 default_neighbor_lexicon='phonetic_french.txt'
 default_word_lexicon='phonetic_french.txt'

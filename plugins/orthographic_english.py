@@ -1,5 +1,5 @@
 # Orthographic English
-public_name='Orthographic English'
+# pylint: disable=unused-wildcard-import
 default_data='orthographic_english.txt'
 default_neighbor_lexicon='orthographic_english.txt'
 default_word_lexicon='orthographic_english.txt'

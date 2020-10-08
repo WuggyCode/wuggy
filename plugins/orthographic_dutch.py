@@ -1,5 +1,5 @@
 # Orthographic Dutch
-public_name='Orthographic Dutch'
+# pylint: disable=unused-wildcard-import
 default_data='orthographic_dutch.txt'
 default_neighbor_lexicon='orthographic_dutch.txt'
 default_word_lexicon='orthographic_dutch.txt'

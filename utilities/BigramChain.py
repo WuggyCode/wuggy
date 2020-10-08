@@ -16,26 +16,11 @@ class BigramChain(defaultdict):
         if data!=None:
             self.load(data, size=size, cutoff=cutoff, token=token)
         self.startkeys=[]
-        self.status={'message':'','progress':0}
-        self.subscribers=[]
         self.limit_frequencies={}
-
-    def set_status(self, message, progress):
-        for receiver in [self]+self.subscribers:
-            receiver.status['message']=message
-            receiver.status['progress']=progress
-
-    def clear_status(self):
-        for receiver in [self]+self.subscribers:
-            receiver.status['message']=''
-            receiver.status['progress']=0
 
     def load(self, datafile, size=100, cutoff=1, token=False):
         lines=datafile.readlines()
-        nlines=float(len(lines))
         for i,line in enumerate(lines):
-            if i % 1000==0:
-                self.set_status("Constructing Bigram Chain", i/nlines*100)
             fields=line.strip('\n\t').split(self.plugin_module.separator)
             reference, input_sequence, frequency=fields
             frequency=float(frequency) if token==True else 1
@@ -51,7 +36,6 @@ class BigramChain(defaultdict):
             else:
                 pass
         datafile.close()
-        self.clear_status()
         self.set_startkeys()
 
     def set_startkeys(self, reference_sequence=None, fields=None):
@@ -60,7 +44,6 @@ class BigramChain(defaultdict):
         if reference_sequence==None:
             self.startkeys=dict([(key,0) for key in self.keys() if key.position==0])
         else:
-            reference_values=[reference_sequence[0].__getattribute__(field) for field in fields]
             self.startkeys={}
             for key in self.keys():
                 if key.position==0:

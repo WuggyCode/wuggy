@@ -1,5 +1,5 @@
 # Orthographic French
-public_name='Orthographic French'
+# pylint: disable=unused-wildcard-import
 default_data='orthographic_french.txt'
 default_neighbor_lexicon='orthographic_french.txt'
 default_word_lexicon='orthographic_french.txt'

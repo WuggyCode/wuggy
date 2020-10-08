@@ -1,8 +1,7 @@
-# -*- encoding: utf-8 -*-
 # Subsyllabic Polish
 # by Paweł Mandera
 # pawel.mandera@ugent.be
-public_name='Orthographic Polish'
+# pylint: disable=unused-wildcard-import
 default_data='orthographic_polish.txt'
 default_neighbor_lexicon='orthographic_polish.txt'
 default_word_lexicon='orthographic_polish.txt'

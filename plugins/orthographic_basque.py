@@ -1,5 +1,5 @@
 # Orthographic Basque
-public_name='Orthographic Basque'
+# pylint: disable=unused-wildcard-import
 default_data='orthographic_basque.txt'
 default_neighbor_lexicon='orthographic_basque.txt'
 default_word_lexicon='orthographic_basque.txt'

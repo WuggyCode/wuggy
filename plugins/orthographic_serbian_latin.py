@@ -1,5 +1,5 @@
 # Orthographic Serbian (Latin)
-public_name='Orthographic Serbian (Latin)'
+# pylint: disable=unused-wildcard-import
 default_data='orthographic_serbian_latin.txt'
 default_neighbor_lexicon='orthographic_serbian_latin.txt'
 default_word_lexicon='orthographic_serbian_latin.txt'

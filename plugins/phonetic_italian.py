@@ -1,5 +1,5 @@
 # Phonetic Italian
-public_name='Phonetic Italian'
+# pylint: disable=unused-wildcard-import
 default_data='phonetic_italian.txt'
 default_neighbor_lexicon='phonetic_italian.txt'
 default_word_lexicon='phonetic_italian.txt'

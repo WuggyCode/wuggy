@@ -14,13 +14,14 @@ import warnings
 import logging
 from typing import Optional, Callable
 from ..plugins import orthographic_basque, orthographic_dutch, orthographic_english, orthographic_french, orthographic_german, orthographic_italian, orthographic_polish, orthographic_serbian_cyrillic, orthographic_serbian_latin, orthographic_spanish, orthographic_vietnamese, phonetic_english_celex, phonetic_english_cmu, phonetic_french, phonetic_italian
+from functools import wraps
 
 
 def loaded_plugin_required(func: Callable):
     """
     Decorator used for regular Wuggy methods to ensure that a valid language plugin is loaded before execution.
     """
-
+    @wraps(func)
     def wrapper(*args, **kwargs):
         if not hasattr(args[0], 'plugin_module'):
             raise Exception(
@@ -35,6 +36,7 @@ def loaded_plugin_required_generator(func: Callable):
     Decorator used for Wuggy generator methods to ensure that a valid language plugin is loaded before execution.
     """
 
+    @wraps(func)
     def wrapper(*args, **kwargs):
         if not hasattr(args[0], 'plugin_module'):
             raise Exception(
@@ -405,7 +407,7 @@ class WuggyGenerator(PseudowordGenerator):
         """
         Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
         Uses sensible defaults which do not have to be set by the user.
-        Only pseudowords with a larger overlap are returned.
+        Only pseudowords with a large overlap with the input sequence are returned.
         This method always clears the sequence cache.
         """
         self.__clear_sequence_cache()
@@ -432,7 +434,7 @@ class WuggyGenerator(PseudowordGenerator):
                     self.current_sequence = sequence
                     self.apply_statistics()
                     # TODO: should we set the overlap ratio like here to generate 'close' pseudowords by default?
-                    if (self.statistics["overlap_ratio"] == Fraction(2, 3)):
+                    if (self.statistics["overlap_ratio"] == Fraction(2, 3) and self.statistics['lexicality'] == 'N'):
                         # TODO: do we even need to add to cache if this function clears cache anyway?
                         self.sequence_cache.append(
                             self.plugin_module.output_plain(sequence))

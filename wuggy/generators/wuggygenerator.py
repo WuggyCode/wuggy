@@ -50,7 +50,7 @@ class WuggyGenerator(PseudowordGenerator):
 
     def __init__(self):
         PseudowordGenerator.__init__(self)
-        self.data_path = 'data'
+        self.data_path = os.path.join(os.path.dirname(__file__), "..", "data")
         self.bigramchain = None
         self.bigramchains = {}
         self.supported_language_plugins = {"orthographic_dutch": orthographic_dutch, "orthographic_english": orthographic_english, "orthographic_french": orthographic_french, "orthographic_german": orthographic_german, "orthographic_italian": orthographic_italian, "orthographic_polish": orthographic_polish, "orthographic_serbian_cyrillic": orthographic_serbian_cyrillic,

@@ -92,7 +92,7 @@ class WuggyGenerator(PseudowordGenerator):
             # TODO: check if language plugins exist locally, else warning
             # TODO: git submodule
             path = u"%s/%s" % (self.data_path, plugin_module.default_data)
-            data_file = codecs.open(path, 'r', plugin_module.default_encoding)
+            data_file = codecs.open(path, 'r')
             self.bigramchains[plugin_module.__name__] = BigramChain(
                 plugin_module)
             self.bigramchains[plugin_module.__name__].load(data_file)
@@ -123,14 +123,14 @@ class WuggyGenerator(PseudowordGenerator):
         """
         cutoff = 0
         data_file = codecs.open(
-            "%s/%s" % (self.data_path, self.plugin_module.default_word_lexicon), 'r', self.plugin_module.default_encoding)
+            "%s/%s" % (self.data_path, self.plugin_module.default_word_lexicon), 'r')
         self.word_lexicon = defaultdict(list)
         lines = data_file.readlines()
         for line in lines:
             fields = line.strip().split('\t')
             word = fields[0]
             frequency_per_million = fields[-1]
-            if float(frequency_per_million) > cutoff:
+            if float(frequency_per_million) >= cutoff:
                 self.word_lexicon[word[0], len(word)].append(word)
         data_file.close()
 
@@ -141,7 +141,7 @@ class WuggyGenerator(PseudowordGenerator):
         """
         cutoff = 0
         data_file = codecs.open(
-            "%s/%s" % (self.data_path, self.plugin_module.default_neighbor_lexicon), 'r', self.plugin_module.default_encoding)
+            "%s/%s" % (self.data_path, self.plugin_module.default_neighbor_lexicon), 'r')
         self.neighbor_lexicon = []
         lines = data_file.readlines()
         for line in lines:
@@ -160,7 +160,7 @@ class WuggyGenerator(PseudowordGenerator):
         self.lookup_lexicon = {}
         if data_file == None:
             data_file = codecs.open(
-                "%s/%s" % (self.data_path, self.plugin_module.default_lookup_lexicon), 'r', self.plugin_module.default_encoding)
+                "%s/%s" % (self.data_path, self.plugin_module.default_lookup_lexicon), 'r')
         lines = data_file.readlines()
         for line in lines:
             fields = line.strip().split(self.plugin_module.separator)
@@ -198,7 +198,6 @@ class WuggyGenerator(PseudowordGenerator):
         """
         self.reference_sequence = self.plugin_module.transform(
             sequence).representation
-        print(self.reference_sequence)
         self.reference_sequence_frequencies = self.bigramchain.get_frequencies(
             self.reference_sequence)
         self.__clear_stat_cache()
@@ -434,7 +433,7 @@ class WuggyGenerator(PseudowordGenerator):
                     self.current_sequence = sequence
                     self.apply_statistics()
                     # TODO: should we set the overlap ratio like here to generate 'close' pseudowords by default?
-                    if (self.statistics["overlap_ratio"] == Fraction(2, 3) and self.statistics['lexicality'] == 'N'):
+                    if (self.statistics["overlap_ratio"] == Fraction(2, 3) and self.statistics["lexicality"] == "N"):
                         # TODO: do we even need to add to cache if this function clears cache anyway?
                         self.sequence_cache.append(
                             self.plugin_module.output_plain(sequence))

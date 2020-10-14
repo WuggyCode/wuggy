@@ -24,7 +24,6 @@ class BigramChain(defaultdict):
 
     def load(self, datafile, size=100, cutoff=1, token=False):
         lines = datafile.readlines()
-        print(datafile)
         for i, line in enumerate(lines):
             fields = line.strip('\n\t').split(self.plugin_module.separator)
             reference, input_sequence, frequency = fields

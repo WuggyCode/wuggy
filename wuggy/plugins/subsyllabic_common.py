@@ -12,7 +12,6 @@ sys.path.append(os.pardir)
 separator = u'\t'
 subseparator = u'|'
 default_fields = ['sequence_length']
-default_encoding = 'utf-8'
 language = None
 # TODO: already have the language files prepared
 Segment = namedtuple('Segment', ('sequence_length',

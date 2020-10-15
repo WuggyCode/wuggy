@@ -11,13 +11,13 @@ from .pseudowordgenerator import PseudowordGenerator
 from math import floor
 from enum import Enum
 import warnings
-import logging
-from typing import Optional, Callable
+from typing import Optional, Callable, Generator, Union, Any
 from ..plugins import orthographic_basque, orthographic_dutch, orthographic_english, orthographic_french, orthographic_german, orthographic_italian, orthographic_polish, orthographic_serbian_cyrillic, orthographic_serbian_latin, orthographic_spanish, orthographic_vietnamese, phonetic_english_celex, phonetic_english_cmu, phonetic_french, phonetic_italian
 from functools import wraps
+from urllib.request import urlopen
 
 
-def loaded_plugin_required(func: Callable):
+def loaded_plugin_required(func):
     """
     Decorator used for regular Wuggy methods to ensure that a valid language plugin is loaded before execution.
     """
@@ -26,22 +26,19 @@ def loaded_plugin_required(func: Callable):
         if not hasattr(args[0], 'plugin_module'):
             raise Exception(
                 "This function cannot be called if no language plugin is loaded!")
-        # TODO: make sure this decorator works for the genererator given by generate(), or find alternative
         func(*args, **kwargs)
     return wrapper
 
 
-def loaded_plugin_required_generator(func: Callable):
+def loaded_plugin_required_generator(func):
     """
     Decorator used for Wuggy generator methods to ensure that a valid language plugin is loaded before execution.
     """
-
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not hasattr(args[0], 'plugin_module'):
             raise Exception(
                 "The generator cannot be iterated if no language plugin is loaded!")
-        # TODO: make sure this decorator works for the genererator given by generate(), or find alternative
         gen = func(*args, **kwargs)
         for val in gen:
             yield val
@@ -49,7 +46,6 @@ def loaded_plugin_required_generator(func: Callable):
 
 
 class WuggyGenerator(PseudowordGenerator):
-
     def __init__(self):
         PseudowordGenerator.__init__(self)
         self.data_path = os.path.join(os.path.dirname(__file__), "..", "data")
@@ -57,6 +53,7 @@ class WuggyGenerator(PseudowordGenerator):
         self.bigramchains = {}
         self.supported_language_plugins = {"orthographic_dutch": orthographic_dutch, "orthographic_english": orthographic_english, "orthographic_french": orthographic_french, "orthographic_german": orthographic_german, "orthographic_italian": orthographic_italian, "orthographic_polish": orthographic_polish, "orthographic_serbian_cyrillic": orthographic_serbian_cyrillic,
                                            "orthographic_serbian_latin": orthographic_serbian_latin, "orthographic_spanish": orthographic_spanish, "orthographic_vietnamese": orthographic_vietnamese, "phonetic_english_celex": phonetic_english_celex, "phonetic_english_cmu": phonetic_english_cmu, "phonetic_french": phonetic_french, "phonetic_italian": phonetic_italian}
+        self.__language_plugin_repository_url = "https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/"
         self.attribute_subchain = None
         self.frequency_subchain = None
         self.segmentset_subchain = None
@@ -87,16 +84,32 @@ class WuggyGenerator(PseudowordGenerator):
             language_plugin_name)
         if plugin_module is None:
             raise ValueError(
-                "This language is not supported by Wuggy at this moment.")
+                f"This language is not supported by Wuggy at this moment. Wuggy supports: {(', '.join(self.supported_language_plugins))}")
         if language_plugin_name not in self.bigramchains:
-            # TODO: check if language plugins exist locally, else warning
-            # TODO: git submodule
-            path = u"%s/%s" % (self.data_path, plugin_module.default_data)
-            data_file = codecs.open(path, 'r')
+            path = os.path.join(self.data_path, plugin_module.default_data)
+            if (not os.path.exists(self.data_path)):
+                os.makedirs(os.path)
+            if (not os.path.isfile(path)):
+                self.__download_language_plugin(language_plugin_name, path)
+            data_file = codecs.open(path, 'r', encoding='utf-8')
             self.bigramchains[plugin_module.__name__] = BigramChain(
                 plugin_module)
             self.bigramchains[plugin_module.__name__].load(data_file)
         self.__activate(plugin_module.__name__)
+
+    def __download_language_plugin(self, language_plugin_name: str, path_to_save: str) -> None:
+        """
+        Downloads and saves given language plugin to local storage from the corresponding file repository.
+        """
+        # TODO: should this become a prompt? Currently auto-downloads.
+        warnings.warn(
+            f"The language plugin {language_plugin_name} was not found. Wuggy is currently downloading this plugin for you...")
+        raw_file = urlopen(
+            f"{self.__language_plugin_repository_url}{language_plugin_name}.txt")
+        file = open(f'{path_to_save}', 'w', encoding="utf-8")
+
+        for line in raw_file:
+            file.write(line.decode("utf-8"))
 
     def __activate(self, name: str) -> None:
         """
@@ -123,7 +136,7 @@ class WuggyGenerator(PseudowordGenerator):
         """
         cutoff = 0
         data_file = codecs.open(
-            "%s/%s" % (self.data_path, self.plugin_module.default_word_lexicon), 'r')
+            "%s/%s" % (self.data_path, self.plugin_module.default_word_lexicon), 'r', encoding="utf-8")
         self.word_lexicon = defaultdict(list)
         lines = data_file.readlines()
         for line in lines:
@@ -141,7 +154,7 @@ class WuggyGenerator(PseudowordGenerator):
         """
         cutoff = 0
         data_file = codecs.open(
-            "%s/%s" % (self.data_path, self.plugin_module.default_neighbor_lexicon), 'r')
+            "%s/%s" % (self.data_path, self.plugin_module.default_neighbor_lexicon), 'r', encoding="utf-8")
         self.neighbor_lexicon = []
         lines = data_file.readlines()
         for line in lines:
@@ -160,7 +173,7 @@ class WuggyGenerator(PseudowordGenerator):
         self.lookup_lexicon = {}
         if data_file == None:
             data_file = codecs.open(
-                "%s/%s" % (self.data_path, self.plugin_module.default_lookup_lexicon), 'r')
+                "%s/%s" % (self.data_path, self.plugin_module.default_lookup_lexicon), 'r', encoding="utf-8")
         lines = data_file.readlines()
         for line in lines:
             fields = line.strip().split(self.plugin_module.separator)
@@ -191,7 +204,7 @@ class WuggyGenerator(PseudowordGenerator):
         return self.plugin_module.default_fields
 
     @loaded_plugin_required
-    def set_reference_sequence(self, sequence: str):
+    def set_reference_sequence(self, sequence: str) -> None:
         """
         Set the reference sequence.
         This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.
@@ -238,7 +251,7 @@ class WuggyGenerator(PseudowordGenerator):
         Enable a statistic based on its name.
         """
         if name not in self.supported_statistics:
-            raise ValueError("Statistic {} is not supported.".format(name))
+            raise ValueError(f"Statistic {name} is not supported.")
         self.statistics[name] = None
 
     def set_statistics(self, names: [str]) -> None:
@@ -248,7 +261,7 @@ class WuggyGenerator(PseudowordGenerator):
         for name in names:
             if name not in self.supported_statistics:
                 self.statistics = {}
-                raise ValueError("Statistic {} is not supported.".format(name))
+                raise ValueError(f"Statistic {name} is not supported.")
             self.statistics[name] = None
 
     def set_all_statistics(self) -> None:
@@ -309,28 +322,28 @@ class WuggyGenerator(PseudowordGenerator):
         Set an output mode supported by the currently activated language plugin.
         """
         if name not in self.list_output_modes():
-            raise ValueError("Output mode {} is not supported.".format(name))
+            raise ValueError(f"Output mode {name} is not supported.")
         self.output_mode = eval("self.plugin_module.output_%s" % (name))
 
-    def set_attribute_filter(self, name: str):
+    def set_attribute_filter(self, name: str) -> None:
         """
         Set an attribute filter supported by the currently activated language plugin.
         """
         reference_sequence = self.reference_sequence
         if name not in self.supported_attribute_filters:
             raise ValueError(
-                "Attribute filter {} is not supported.".format(name))
+                f"Attribute filter {name} is not supported.")
         self.attribute_filters[name] = reference_sequence
         self.attribute_subchain = None
 
-    def set_attribute_filters(self, names: [str]):
+    def set_attribute_filters(self, names: [str]) -> None:
         """
         Set attribute filters supported by the currently activated language plugin.
         """
         for name in names:
             self.set_attribute_filter(name)
 
-    def __apply_attribute_filters(self):
+    def __apply_attribute_filters(self) -> None:
         """
         Apply all set attribute filters.
         This is currently used by generate() internally, do not call on your own.
@@ -340,27 +353,27 @@ class WuggyGenerator(PseudowordGenerator):
             self.attribute_subchain = subchain.attribute_filter(
                 reference_sequence, attribute)
 
-    def clear_attribute_filters(self):
+    def clear_attribute_filters(self) -> None:
         """
         Remove all set attribute filters.
         """
         self.attribute_filters = {}
 
-    def set_frequency_filter(self, lower: int, upper: int):
+    def set_frequency_filter(self, lower: int, upper: int) -> None:
         """
         Sets the frequency filter for concentric search.
         Stricter search (small values for lower and upper) result in faster word generation.
         """
         self.frequency_filter = (self.reference_sequence, lower, upper)
 
-    def clear_frequency_filter(self):
+    def clear_frequency_filter(self) -> None:
         """
         Clear the previously set frequency filter.
         """
         self.frequency_filter = None
         self.frequency_subchain = None
 
-    def apply_frequency_filter(self):
+    def apply_frequency_filter(self) -> None:
         """
         Apply the previously set frequency filter.
         """
@@ -371,7 +384,7 @@ class WuggyGenerator(PseudowordGenerator):
         self.frequency_subchain = subchain.frequency_filter(
             reference_sequence, lower, upper)
 
-    def set_segmentset_filter(self, segmentset: set):
+    def set_segmentset_filter(self, segmentset: set) -> None:
         """
         TODO: finish docstring, make sure the purpose of this function is clear
         """
@@ -379,14 +392,14 @@ class WuggyGenerator(PseudowordGenerator):
             segmentset = set(segmentset)
         self.segmentset_filter = segmentset
 
-    def clear_segmentset_filter(self):
+    def clear_segmentset_filter(self) -> None:
         """
         Set the previously set segmentset filter.
         """
         self.segmentset_filter = None
         self.segmentset_subchain = None
 
-    def apply_segmentset_filter(self):
+    def apply_segmentset_filter(self) -> None:
         """
         Apply the previously set segmentset filter.
         """
@@ -402,7 +415,7 @@ class WuggyGenerator(PseudowordGenerator):
             self.reference_sequence, self.segmentset_filter)
 
     @loaded_plugin_required_generator
-    def generate_simple(self, sequence: str):
+    def generate_simple(self, sequence: str) -> Generator[str, None, None]:
         """
         Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
         Uses sensible defaults which do not have to be set by the user.
@@ -411,8 +424,8 @@ class WuggyGenerator(PseudowordGenerator):
         """
         self.__clear_sequence_cache()
         if self.lookup(sequence) == None:
-            raise Exception("Word was not found in lexicon {}".format(
-                self.current_language_plugin_name))
+            raise Exception(
+                f"Word was not found in lexicon {self.current_language_plugin_name}")
         self.set_reference_sequence(sequence)
         self.set_output_mode("plain")
         subchain = self.bigramchain
@@ -441,7 +454,7 @@ class WuggyGenerator(PseudowordGenerator):
                         yield self.output_mode(sequence)
 
     @loaded_plugin_required_generator
-    def generate(self, clear_cache: bool = True):
+    def generate(self, clear_cache: bool = True) -> Union[Generator[str, None, None], Generator[tuple, None, None]]:
         """
         Creates a generator which can be iterated to return generated pseudowords.
         If attributes such as \"output_mode\" are not set, sensible defaults are used.

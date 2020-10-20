@@ -7,5 +7,5 @@ import sys
 
 g = WuggyGenerator()
 g.load("orthographic_english")
-for sequence in g.generate_simple("trumpet"):
+for sequence in g.generate_simple("dog"):
     print(sequence)

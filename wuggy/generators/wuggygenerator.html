@@ -1,0 +1,1574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>wuggy.generators.wuggygenerator API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>wuggy.generators.wuggygenerator</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import os
+import sys
+import random
+import codecs
+from fractions import Fraction
+from collections import defaultdict, namedtuple
+import pickle
+import threading
+from ..utilities.bigramchain import BigramChain
+from .pseudowordgenerator import PseudowordGenerator
+from math import floor
+from enum import Enum
+import warnings
+from typing import Optional, Callable, Generator, Union, Any
+from ..plugins import orthographic_basque, orthographic_dutch, orthographic_english, orthographic_french, orthographic_german, orthographic_italian, orthographic_polish, orthographic_serbian_cyrillic, orthographic_serbian_latin, orthographic_spanish, orthographic_vietnamese, phonetic_english_celex, phonetic_english_cmu, phonetic_french, phonetic_italian
+from functools import wraps
+from urllib.request import urlopen
+
+
+def _loaded_plugin_required(func):
+    &#34;&#34;&#34;
+    Decorator used for regular Wuggy methods to ensure that a valid language plugin is loaded before execution.
+    &#34;&#34;&#34;
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not hasattr(args[0], &#39;plugin_module&#39;):
+            raise Exception(
+                &#34;This function cannot be called if no language plugin is loaded!&#34;)
+        func(*args, **kwargs)
+    return wrapper
+
+
+def _loaded_plugin_required_generator(func):
+    &#34;&#34;&#34;
+    Decorator used for Wuggy generator methods to ensure that a valid language plugin is loaded before execution.
+    &#34;&#34;&#34;
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not hasattr(args[0], &#39;plugin_module&#39;):
+            raise Exception(
+                &#34;The generator cannot be iterated if no language plugin is loaded!&#34;)
+        gen = func(*args, **kwargs)
+        for val in gen:
+            yield val
+    return wrapper
+
+
+class WuggyGenerator(PseudowordGenerator):
+    def __init__(self):
+        PseudowordGenerator.__init__(self)
+        self.data_path = os.path.join(os.path.dirname(__file__), &#34;..&#34;, &#34;data&#34;)
+        self.bigramchain = None
+        self.bigramchains = {}
+        self.supported_language_plugins = {&#34;orthographic_dutch&#34;: orthographic_dutch, &#34;orthographic_english&#34;: orthographic_english, &#34;orthographic_french&#34;: orthographic_french, &#34;orthographic_german&#34;: orthographic_german, &#34;orthographic_italian&#34;: orthographic_italian, &#34;orthographic_polish&#34;: orthographic_polish, &#34;orthographic_serbian_cyrillic&#34;: orthographic_serbian_cyrillic,
+                                           &#34;orthographic_serbian_latin&#34;: orthographic_serbian_latin, &#34;orthographic_spanish&#34;: orthographic_spanish, &#34;orthographic_vietnamese&#34;: orthographic_vietnamese, &#34;phonetic_english_celex&#34;: phonetic_english_celex, &#34;phonetic_english_cmu&#34;: phonetic_english_cmu, &#34;phonetic_french&#34;: phonetic_french, &#34;phonetic_italian&#34;: phonetic_italian}
+        self.__language_plugin_repository_url = &#34;https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/&#34;
+        self.attribute_subchain = None
+        self.frequency_subchain = None
+        self.segmentset_subchain = None
+        self.reference_sequence = None
+        self.frequency_filter = None
+        self.segmentset_filter = None
+        self.current_sequence = None
+        self.output_mode = None
+        self.supported_statistics = ()
+        self.supported_attribute_filters = {}
+        self.attribute_filters = {}
+        self.default_attributes = []
+        self.statistics = {}
+        self.word_lexicon = defaultdict(list)
+        self.neighbor_lexicon = []
+        self.reference_statistics = {}
+        self.stat_cache = {}
+        self.sequence_cache = []
+        self.difference_statistics = {}
+        self.match_statistics = {}
+        self.lookup_lexicon = {}
+
+    def load(self, language_plugin_name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Loads in a language plugin, if available, and stores the corresponding bigramchains.
+        &#34;&#34;&#34;
+        plugin_module = self.supported_language_plugins.get(
+            language_plugin_name)
+        if plugin_module is None:
+            raise ValueError(
+                f&#34;This language is not supported by Wuggy at this moment. Wuggy supports: {(&#39;, &#39;.join(self.supported_language_plugins))}&#34;)
+        if language_plugin_name not in self.bigramchains:
+            path = os.path.join(self.data_path, plugin_module.default_data)
+            if (not os.path.exists(self.data_path)):
+                os.makedirs(os.path)
+            if (not os.path.isfile(path)):
+                self.__download_language_plugin(language_plugin_name, path)
+            data_file = codecs.open(path, &#39;r&#39;, encoding=&#39;utf-8&#39;)
+            self.bigramchains[plugin_module.__name__] = BigramChain(
+                plugin_module)
+            self.bigramchains[plugin_module.__name__].load(data_file)
+        self.__activate(plugin_module.__name__)
+
+    def __download_language_plugin(self, language_plugin_name: str, path_to_save: str) -&gt; None:
+        &#34;&#34;&#34;
+        Downloads and saves given language plugin to local storage from the corresponding file repository.
+        &#34;&#34;&#34;
+        # TODO: should this become a prompt? Currently auto-downloads.
+        warnings.warn(
+            f&#34;The language plugin {language_plugin_name} was not found. Wuggy is currently downloading this plugin for you...&#34;)
+        raw_file = urlopen(
+            f&#34;{self.__language_plugin_repository_url}{language_plugin_name}.txt&#34;)
+        file = open(f&#39;{path_to_save}&#39;, &#39;w&#39;, encoding=&#34;utf-8&#34;)
+
+        for line in raw_file:
+            file.write(line.decode(&#34;utf-8&#34;))
+
+    def __activate(self, name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Activate a language plugin by setting the corresponding bigramchains and lexicon properties.
+        This deactivates and garbage collects any previously activated language plugin.
+        Should only be called internally, do not call on your own.
+        &#34;&#34;&#34;
+        if type(name) == type(codecs):
+            name = name.__name__
+        self.bigramchain = self.bigramchains[name]
+        self.plugin_module = self.bigramchain.plugin_module
+        self.__load_neighbor_lexicon()
+        self.__load_word_lexicon()
+        self.__load_lookup_lexicon()
+        self.supported_statistics = self.__get_statistics()
+        self.supported_attribute_filters = self.__get_attributes()
+        self.default_attributes = self.__get_default_attributes()
+        self.current_language_plugin_name = name
+
+    def __load_word_lexicon(self) -&gt; None:
+        &#34;&#34;&#34;
+        Loads the default word lexicon for the currently set language plugin.
+        This is currently used internally by __activate only, do not call on your own.
+        &#34;&#34;&#34;
+        cutoff = 0
+        data_file = codecs.open(
+            &#34;%s/%s&#34; % (self.data_path, self.plugin_module.default_word_lexicon), &#39;r&#39;, encoding=&#34;utf-8&#34;)
+        self.word_lexicon = defaultdict(list)
+        lines = data_file.readlines()
+        for line in lines:
+            fields = line.strip().split(&#39;\t&#39;)
+            word = fields[0]
+            frequency_per_million = fields[-1]
+            if float(frequency_per_million) &gt;= cutoff:
+                self.word_lexicon[word[0], len(word)].append(word)
+        data_file.close()
+
+    def __load_neighbor_lexicon(self) -&gt; None:
+        &#34;&#34;&#34;
+        Loads the default neighbor word lexicon for the currently set language plugin.
+        This is currently used internally by __activate only, do not call on your own.
+        &#34;&#34;&#34;
+        cutoff = 0
+        data_file = codecs.open(
+            &#34;%s/%s&#34; % (self.data_path, self.plugin_module.default_neighbor_lexicon), &#39;r&#39;, encoding=&#34;utf-8&#34;)
+        self.neighbor_lexicon = []
+        lines = data_file.readlines()
+        for line in lines:
+            fields = line.strip().split(&#39;\t&#39;)
+            word = fields[0]
+            frequency_per_million = fields[-1]
+            if float(frequency_per_million) &gt; cutoff:
+                self.neighbor_lexicon.append(word)
+        data_file.close()
+
+    def __load_lookup_lexicon(self, data_file: bool = None) -&gt; None:
+        &#34;&#34;&#34;
+        Loads the default lookup word lexicon for the currently set language plugin.
+        This is currently used internally by __activate only, do not call on your own.
+        &#34;&#34;&#34;
+        self.lookup_lexicon = {}
+        if data_file == None:
+            data_file = codecs.open(
+                &#34;%s/%s&#34; % (self.data_path, self.plugin_module.default_lookup_lexicon), &#39;r&#39;, encoding=&#34;utf-8&#34;)
+        lines = data_file.readlines()
+        for line in lines:
+            fields = line.strip().split(self.plugin_module.separator)
+            reference, representation = fields[0:2]
+            self.lookup_lexicon[reference] = representation
+        data_file.close()
+
+    def lookup(self, reference: str) -&gt; Optional[str]:
+        &#34;&#34;&#34;
+        Look up a given reference (word) from the currently active lookup lexicon.
+        Returns None if the word is not found.
+        Commonly used to error check if a given word exists before passing it as a reference sequence.
+        &#34;&#34;&#34;
+        return self.lookup_lexicon.get(reference, None)
+
+    def __get_attributes(self) -&gt; [namedtuple]:
+        &#34;&#34;&#34;
+        Returns a list of all attribute fields of the currently activated language plugin as a named tuple.
+        This should only be used internally, read the property &#34;supported_attribute_filters&#34; instead.
+        &#34;&#34;&#34;
+        return self.plugin_module.Segment._fields
+
+    def __get_default_attributes(self) -&gt; [str]:
+        &#34;&#34;&#34;
+        Returns a list of default attribute fields of the currently activated language plugin.
+        This should only be used internally, read the property &#34;default_attributes&#34; instead.
+        &#34;&#34;&#34;
+        return self.plugin_module.default_fields
+
+    @_loaded_plugin_required
+    def set_reference_sequence(self, sequence: str) -&gt; None:
+        &#34;&#34;&#34;
+        Set the reference sequence.
+        This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.
+        &#34;&#34;&#34;
+        self.reference_sequence = self.plugin_module.transform(
+            sequence).representation
+        self.reference_sequence_frequencies = self.bigramchain.get_frequencies(
+            self.reference_sequence)
+        self.__clear_stat_cache()
+        for name in self.__get_statistics():
+            function = eval(&#34;self.plugin_module.statistic_%s&#34; % (name))
+            self.reference_statistics[name] = function(
+                self, self.reference_sequence)
+
+    def get_limit_frequencies(self, fields):
+        # TODO: docstring and parameter type hint
+        limits = []
+        if tuple(fields) not in self.bigramchain.limit_frequencies:
+            self.bigramchain.build_limit_frequencies(fields)
+        for i in range(0, len(self.reference_sequence)-1):
+            subkey_a = (i, tuple(
+                [self.reference_sequence[i].__getattribute__(field) for field in fields]))
+            subkey_b = (
+                i+1, tuple([self.reference_sequence[i+1].__getattribute__(field) for field in fields]))
+            subkey = (subkey_a, subkey_b)
+            try:
+                limits.append(
+                    self.bigramchain.limit_frequencies[tuple(fields)][subkey])
+            except:
+                limits.append([{max: 0, min: 0}])
+        return limits
+
+    def __get_statistics(self) -&gt; [str]:
+        &#34;&#34;&#34;
+        Lists all statistics supported by a given language plugin.
+        This should only be used internally, read the property &#34;supported_statistics&#34; instead.
+        &#34;&#34;&#34;
+        names = [name for name in dir(
+            self.plugin_module) if name.startswith(&#39;statistic&#39;)]
+        return [name.replace(&#39;statistic_&#39;, &#39;&#39;) for name in names]
+
+    def set_statistic(self, name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Enable a statistic based on its name.
+        &#34;&#34;&#34;
+        if name not in self.supported_statistics:
+            raise ValueError(f&#34;Statistic {name} is not supported.&#34;)
+        self.statistics[name] = None
+
+    def set_statistics(self, names: [str]) -&gt; None:
+        &#34;&#34;&#34;
+        Enables statistics based on their names.
+        &#34;&#34;&#34;
+        for name in names:
+            if name not in self.supported_statistics:
+                self.statistics = {}
+                raise ValueError(f&#34;Statistic {name} is not supported.&#34;)
+            self.statistics[name] = None
+
+    def set_all_statistics(self) -&gt; None:
+        &#34;&#34;&#34;
+        Enable all statistics supported by the current active language plugin.
+        Enabling all statistics increases word generation computation time, especially for statistics such as ned1.
+        &#34;&#34;&#34;
+        self.set_statistics(self.supported_statistics)
+
+    def apply_statistics(self, sequence: str = None) -&gt; None:
+        &#34;&#34;&#34;
+        Apply all statistics which were set beforehand.
+        &#34;&#34;&#34;
+        if sequence == None:
+            sequence = self.current_sequence
+        for name in self.statistics:
+            function = eval(&#34;self.plugin_module.statistic_%s&#34; % (name))
+            if (sequence, name) in self.stat_cache:
+                self.statistics[name] = self.stat_cache[(sequence, name)]
+            else:
+                self.statistics[name] = function(self, sequence)
+                self.stat_cache[(sequence, name)] = self.statistics[name]
+            if &#39;match&#39; in function.__dict__:
+                self.match_statistics[name] = function.match(
+                    self.statistics[name], self.reference_statistics[name])
+            if &#39;difference&#39; in function.__dict__:
+                self.difference_statistics[name] = function.difference(
+                    self.statistics[name], self.reference_statistics[name])
+
+    def clear_statistics(self) -&gt; None:
+        &#34;&#34;&#34;
+        Clear all the statistics set previously.
+        &#34;&#34;&#34;
+        self.statistics = {}
+
+    def __clear_stat_cache(self) -&gt; None:
+        &#34;&#34;&#34;
+        Clears the statistics cache. Only used by Wuggy internally.
+        &#34;&#34;&#34;
+        self.stat_cache = {}
+
+    def __clear_sequence_cache(self) -&gt; None:
+        &#34;&#34;&#34;
+        Clears the sequence cache. Only used by Wuggy internally.
+        &#34;&#34;&#34;
+        self.sequence_cache = []
+
+    def list_output_modes(self) -&gt; [str]:
+        &#34;&#34;&#34;
+        List output modes of the currently activated language plugin.
+        &#34;&#34;&#34;
+        names = [name for name in dir(
+            self.plugin_module) if name.startswith(&#39;output&#39;)]
+        return [name.replace(&#39;output_&#39;, &#39;&#39;) for name in names]
+
+    def set_output_mode(self, name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Set an output mode supported by the currently activated language plugin.
+        &#34;&#34;&#34;
+        if name not in self.list_output_modes():
+            raise ValueError(f&#34;Output mode {name} is not supported.&#34;)
+        self.output_mode = eval(&#34;self.plugin_module.output_%s&#34; % (name))
+
+    def set_attribute_filter(self, name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Set an attribute filter supported by the currently activated language plugin.
+        &#34;&#34;&#34;
+        reference_sequence = self.reference_sequence
+        if name not in self.supported_attribute_filters:
+            raise ValueError(
+                f&#34;Attribute filter {name} is not supported.&#34;)
+        self.attribute_filters[name] = reference_sequence
+        self.attribute_subchain = None
+
+    def set_attribute_filters(self, names: [str]) -&gt; None:
+        &#34;&#34;&#34;
+        Set attribute filters supported by the currently activated language plugin.
+        &#34;&#34;&#34;
+        for name in names:
+            self.set_attribute_filter(name)
+
+    def __apply_attribute_filters(self) -&gt; None:
+        &#34;&#34;&#34;
+        Apply all set attribute filters.
+        This is currently used by generate() internally, do not call on your own.
+        &#34;&#34;&#34;
+        for attribute, reference_sequence in self.attribute_filters.items():
+            subchain = self.attribute_subchain if self.attribute_subchain != None else self.bigramchain
+            self.attribute_subchain = subchain.attribute_filter(
+                reference_sequence, attribute)
+
+    def clear_attribute_filters(self) -&gt; None:
+        &#34;&#34;&#34;
+        Remove all set attribute filters.
+        &#34;&#34;&#34;
+        self.attribute_filters = {}
+
+    def set_frequency_filter(self, lower: int, upper: int) -&gt; None:
+        &#34;&#34;&#34;
+        Sets the frequency filter for concentric search.
+        Stricter search (small values for lower and upper) result in faster word generation.
+        &#34;&#34;&#34;
+        self.frequency_filter = (self.reference_sequence, lower, upper)
+
+    def clear_frequency_filter(self) -&gt; None:
+        &#34;&#34;&#34;
+        Clear the previously set frequency filter.
+        &#34;&#34;&#34;
+        self.frequency_filter = None
+        self.frequency_subchain = None
+
+    def apply_frequency_filter(self) -&gt; None:
+        &#34;&#34;&#34;
+        Apply the previously set frequency filter.
+        &#34;&#34;&#34;
+        if self.frequency_filter is None:
+            raise Exception(&#34;No frequency filter was set&#34;)
+        reference_sequence, lower, upper = self.frequency_filter
+        subchain = self.attribute_subchain if self.attribute_subchain != None else self.bigramchain
+        self.frequency_subchain = subchain.frequency_filter(
+            reference_sequence, lower, upper)
+
+    def set_segmentset_filter(self, segmentset: set) -&gt; None:
+        &#34;&#34;&#34;
+        TODO: finish docstring, make sure the purpose of this function is clear
+        &#34;&#34;&#34;
+        if type(segmentset) != set:
+            segmentset = set(segmentset)
+        self.segmentset_filter = segmentset
+
+    def clear_segmentset_filter(self) -&gt; None:
+        &#34;&#34;&#34;
+        Set the previously set segmentset filter.
+        &#34;&#34;&#34;
+        self.segmentset_filter = None
+        self.segmentset_subchain = None
+
+    def apply_segmentset_filter(self) -&gt; None:
+        &#34;&#34;&#34;
+        Apply the previously set segmentset filter.
+        &#34;&#34;&#34;
+        if self.segmentset_filter is None:
+            raise Exception(&#34;No segmentset filter has been set&#34;)
+        if self.frequency_subchain != None:
+            subchain = self.frequency_subchain
+        elif self.attribute_subchain != None:
+            subchain = self.attribute_subchain
+        else:
+            subchain = self.bigramchain
+        self.segmentset_subchain = subchain.segmentset_filter(
+            self.reference_sequence, self.segmentset_filter)
+
+    @_loaded_plugin_required_generator
+    def generate_simple(self, sequence: str) -&gt; Generator[str, None, None]:
+        &#34;&#34;&#34;
+        Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
+        Uses sensible defaults which do not have to be set by the user.
+        Only pseudowords with a large overlap with the input sequence are returned.
+        This method always clears the sequence cache.
+        &#34;&#34;&#34;
+        self.__clear_sequence_cache()
+        if self.lookup(sequence) == None:
+            raise Exception(
+                f&#34;Word was not found in lexicon {self.current_language_plugin_name}&#34;)
+        self.set_reference_sequence(sequence)
+        self.set_output_mode(&#34;plain&#34;)
+        subchain = self.bigramchain
+        self.set_statistic(&#34;overlap_ratio&#34;)
+        self.set_statistic(&#34;lexicality&#34;)
+
+        for i in range(1, 10, 1):
+            # TODO: should we set the frequency filter automatically as done here? Probably most user friendly.
+            self.set_frequency_filter(2**i, 2**i)
+            self.apply_frequency_filter()
+            subchain = self.frequency_subchain
+            subchain = subchain.clean(len(self.reference_sequence)-1)
+            subchain.set_startkeys(self.reference_sequence)
+            for sequence in subchain.generate():
+                if self.plugin_module.output_plain(sequence) in self.sequence_cache:
+                    pass
+                else:
+                    self.current_sequence = sequence
+                    self.apply_statistics()
+                    # TODO: should we set the overlap ratio like here to generate &#39;close&#39; pseudowords by default?
+                    if (self.statistics[&#34;overlap_ratio&#34;] == Fraction(2, 3) and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
+                        # TODO: do we even need to add to cache if this function clears cache anyway?
+                        self.sequence_cache.append(
+                            self.plugin_module.output_plain(sequence))
+
+                        yield self.output_mode(sequence)
+
+    @_loaded_plugin_required_generator
+    def generate(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
+        &#34;&#34;&#34;
+        Creates a generator which can be iterated to return generated pseudowords.
+        If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
+        &#34;&#34;&#34;
+        if clear_cache == True:
+            self.__clear_sequence_cache()
+        if self.output_mode == None:
+            self.set_output_mode(&#34;plain&#34;)
+        if len(self.attribute_filters) == 0 and self.frequency_subchain == None and self.segmentset_subchain == None:
+            subchain = self.bigramchain
+        if len(self.attribute_filters) != 0:
+            if self.attribute_subchain == None:
+                self.__apply_attribute_filters()
+            subchain = self.attribute_subchain
+        if self.frequency_filter != None:
+            self.apply_frequency_filter()
+            subchain = self.frequency_subchain
+        if self.segmentset_filter != None:
+            self.apply_segmentset_filter()
+            subchain = self.segmentset_subchain
+        if self.reference_sequence != None:
+            subchain = subchain.clean(len(self.reference_sequence)-1)
+            subchain.set_startkeys(self.reference_sequence)
+        else:
+            warnings.warn(
+                &#34;No reference sequence was set. Ignore this message if this was intentional.&#34;)
+            subchain.set_startkeys()
+        for sequence in subchain.generate():
+            if self.plugin_module.output_plain(sequence) in self.sequence_cache:
+                pass
+            else:
+                self.sequence_cache.append(
+                    self.plugin_module.output_plain(sequence))
+                self.current_sequence = sequence
+                self.apply_statistics()
+                yield self.output_mode(sequence)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator"><code class="flex name class">
+<span>class <span class="ident">WuggyGenerator</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>This class is a general interface for pseudoword generation classes
+By adhering to this interface, different techniques can be accessed in relatively similar ways</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class WuggyGenerator(PseudowordGenerator):
+    def __init__(self):
+        PseudowordGenerator.__init__(self)
+        self.data_path = os.path.join(os.path.dirname(__file__), &#34;..&#34;, &#34;data&#34;)
+        self.bigramchain = None
+        self.bigramchains = {}
+        self.supported_language_plugins = {&#34;orthographic_dutch&#34;: orthographic_dutch, &#34;orthographic_english&#34;: orthographic_english, &#34;orthographic_french&#34;: orthographic_french, &#34;orthographic_german&#34;: orthographic_german, &#34;orthographic_italian&#34;: orthographic_italian, &#34;orthographic_polish&#34;: orthographic_polish, &#34;orthographic_serbian_cyrillic&#34;: orthographic_serbian_cyrillic,
+                                           &#34;orthographic_serbian_latin&#34;: orthographic_serbian_latin, &#34;orthographic_spanish&#34;: orthographic_spanish, &#34;orthographic_vietnamese&#34;: orthographic_vietnamese, &#34;phonetic_english_celex&#34;: phonetic_english_celex, &#34;phonetic_english_cmu&#34;: phonetic_english_cmu, &#34;phonetic_french&#34;: phonetic_french, &#34;phonetic_italian&#34;: phonetic_italian}
+        self.__language_plugin_repository_url = &#34;https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/&#34;
+        self.attribute_subchain = None
+        self.frequency_subchain = None
+        self.segmentset_subchain = None
+        self.reference_sequence = None
+        self.frequency_filter = None
+        self.segmentset_filter = None
+        self.current_sequence = None
+        self.output_mode = None
+        self.supported_statistics = ()
+        self.supported_attribute_filters = {}
+        self.attribute_filters = {}
+        self.default_attributes = []
+        self.statistics = {}
+        self.word_lexicon = defaultdict(list)
+        self.neighbor_lexicon = []
+        self.reference_statistics = {}
+        self.stat_cache = {}
+        self.sequence_cache = []
+        self.difference_statistics = {}
+        self.match_statistics = {}
+        self.lookup_lexicon = {}
+
+    def load(self, language_plugin_name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Loads in a language plugin, if available, and stores the corresponding bigramchains.
+        &#34;&#34;&#34;
+        plugin_module = self.supported_language_plugins.get(
+            language_plugin_name)
+        if plugin_module is None:
+            raise ValueError(
+                f&#34;This language is not supported by Wuggy at this moment. Wuggy supports: {(&#39;, &#39;.join(self.supported_language_plugins))}&#34;)
+        if language_plugin_name not in self.bigramchains:
+            path = os.path.join(self.data_path, plugin_module.default_data)
+            if (not os.path.exists(self.data_path)):
+                os.makedirs(os.path)
+            if (not os.path.isfile(path)):
+                self.__download_language_plugin(language_plugin_name, path)
+            data_file = codecs.open(path, &#39;r&#39;, encoding=&#39;utf-8&#39;)
+            self.bigramchains[plugin_module.__name__] = BigramChain(
+                plugin_module)
+            self.bigramchains[plugin_module.__name__].load(data_file)
+        self.__activate(plugin_module.__name__)
+
+    def __download_language_plugin(self, language_plugin_name: str, path_to_save: str) -&gt; None:
+        &#34;&#34;&#34;
+        Downloads and saves given language plugin to local storage from the corresponding file repository.
+        &#34;&#34;&#34;
+        # TODO: should this become a prompt? Currently auto-downloads.
+        warnings.warn(
+            f&#34;The language plugin {language_plugin_name} was not found. Wuggy is currently downloading this plugin for you...&#34;)
+        raw_file = urlopen(
+            f&#34;{self.__language_plugin_repository_url}{language_plugin_name}.txt&#34;)
+        file = open(f&#39;{path_to_save}&#39;, &#39;w&#39;, encoding=&#34;utf-8&#34;)
+
+        for line in raw_file:
+            file.write(line.decode(&#34;utf-8&#34;))
+
+    def __activate(self, name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Activate a language plugin by setting the corresponding bigramchains and lexicon properties.
+        This deactivates and garbage collects any previously activated language plugin.
+        Should only be called internally, do not call on your own.
+        &#34;&#34;&#34;
+        if type(name) == type(codecs):
+            name = name.__name__
+        self.bigramchain = self.bigramchains[name]
+        self.plugin_module = self.bigramchain.plugin_module
+        self.__load_neighbor_lexicon()
+        self.__load_word_lexicon()
+        self.__load_lookup_lexicon()
+        self.supported_statistics = self.__get_statistics()
+        self.supported_attribute_filters = self.__get_attributes()
+        self.default_attributes = self.__get_default_attributes()
+        self.current_language_plugin_name = name
+
+    def __load_word_lexicon(self) -&gt; None:
+        &#34;&#34;&#34;
+        Loads the default word lexicon for the currently set language plugin.
+        This is currently used internally by __activate only, do not call on your own.
+        &#34;&#34;&#34;
+        cutoff = 0
+        data_file = codecs.open(
+            &#34;%s/%s&#34; % (self.data_path, self.plugin_module.default_word_lexicon), &#39;r&#39;, encoding=&#34;utf-8&#34;)
+        self.word_lexicon = defaultdict(list)
+        lines = data_file.readlines()
+        for line in lines:
+            fields = line.strip().split(&#39;\t&#39;)
+            word = fields[0]
+            frequency_per_million = fields[-1]
+            if float(frequency_per_million) &gt;= cutoff:
+                self.word_lexicon[word[0], len(word)].append(word)
+        data_file.close()
+
+    def __load_neighbor_lexicon(self) -&gt; None:
+        &#34;&#34;&#34;
+        Loads the default neighbor word lexicon for the currently set language plugin.
+        This is currently used internally by __activate only, do not call on your own.
+        &#34;&#34;&#34;
+        cutoff = 0
+        data_file = codecs.open(
+            &#34;%s/%s&#34; % (self.data_path, self.plugin_module.default_neighbor_lexicon), &#39;r&#39;, encoding=&#34;utf-8&#34;)
+        self.neighbor_lexicon = []
+        lines = data_file.readlines()
+        for line in lines:
+            fields = line.strip().split(&#39;\t&#39;)
+            word = fields[0]
+            frequency_per_million = fields[-1]
+            if float(frequency_per_million) &gt; cutoff:
+                self.neighbor_lexicon.append(word)
+        data_file.close()
+
+    def __load_lookup_lexicon(self, data_file: bool = None) -&gt; None:
+        &#34;&#34;&#34;
+        Loads the default lookup word lexicon for the currently set language plugin.
+        This is currently used internally by __activate only, do not call on your own.
+        &#34;&#34;&#34;
+        self.lookup_lexicon = {}
+        if data_file == None:
+            data_file = codecs.open(
+                &#34;%s/%s&#34; % (self.data_path, self.plugin_module.default_lookup_lexicon), &#39;r&#39;, encoding=&#34;utf-8&#34;)
+        lines = data_file.readlines()
+        for line in lines:
+            fields = line.strip().split(self.plugin_module.separator)
+            reference, representation = fields[0:2]
+            self.lookup_lexicon[reference] = representation
+        data_file.close()
+
+    def lookup(self, reference: str) -&gt; Optional[str]:
+        &#34;&#34;&#34;
+        Look up a given reference (word) from the currently active lookup lexicon.
+        Returns None if the word is not found.
+        Commonly used to error check if a given word exists before passing it as a reference sequence.
+        &#34;&#34;&#34;
+        return self.lookup_lexicon.get(reference, None)
+
+    def __get_attributes(self) -&gt; [namedtuple]:
+        &#34;&#34;&#34;
+        Returns a list of all attribute fields of the currently activated language plugin as a named tuple.
+        This should only be used internally, read the property &#34;supported_attribute_filters&#34; instead.
+        &#34;&#34;&#34;
+        return self.plugin_module.Segment._fields
+
+    def __get_default_attributes(self) -&gt; [str]:
+        &#34;&#34;&#34;
+        Returns a list of default attribute fields of the currently activated language plugin.
+        This should only be used internally, read the property &#34;default_attributes&#34; instead.
+        &#34;&#34;&#34;
+        return self.plugin_module.default_fields
+
+    @_loaded_plugin_required
+    def set_reference_sequence(self, sequence: str) -&gt; None:
+        &#34;&#34;&#34;
+        Set the reference sequence.
+        This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.
+        &#34;&#34;&#34;
+        self.reference_sequence = self.plugin_module.transform(
+            sequence).representation
+        self.reference_sequence_frequencies = self.bigramchain.get_frequencies(
+            self.reference_sequence)
+        self.__clear_stat_cache()
+        for name in self.__get_statistics():
+            function = eval(&#34;self.plugin_module.statistic_%s&#34; % (name))
+            self.reference_statistics[name] = function(
+                self, self.reference_sequence)
+
+    def get_limit_frequencies(self, fields):
+        # TODO: docstring and parameter type hint
+        limits = []
+        if tuple(fields) not in self.bigramchain.limit_frequencies:
+            self.bigramchain.build_limit_frequencies(fields)
+        for i in range(0, len(self.reference_sequence)-1):
+            subkey_a = (i, tuple(
+                [self.reference_sequence[i].__getattribute__(field) for field in fields]))
+            subkey_b = (
+                i+1, tuple([self.reference_sequence[i+1].__getattribute__(field) for field in fields]))
+            subkey = (subkey_a, subkey_b)
+            try:
+                limits.append(
+                    self.bigramchain.limit_frequencies[tuple(fields)][subkey])
+            except:
+                limits.append([{max: 0, min: 0}])
+        return limits
+
+    def __get_statistics(self) -&gt; [str]:
+        &#34;&#34;&#34;
+        Lists all statistics supported by a given language plugin.
+        This should only be used internally, read the property &#34;supported_statistics&#34; instead.
+        &#34;&#34;&#34;
+        names = [name for name in dir(
+            self.plugin_module) if name.startswith(&#39;statistic&#39;)]
+        return [name.replace(&#39;statistic_&#39;, &#39;&#39;) for name in names]
+
+    def set_statistic(self, name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Enable a statistic based on its name.
+        &#34;&#34;&#34;
+        if name not in self.supported_statistics:
+            raise ValueError(f&#34;Statistic {name} is not supported.&#34;)
+        self.statistics[name] = None
+
+    def set_statistics(self, names: [str]) -&gt; None:
+        &#34;&#34;&#34;
+        Enables statistics based on their names.
+        &#34;&#34;&#34;
+        for name in names:
+            if name not in self.supported_statistics:
+                self.statistics = {}
+                raise ValueError(f&#34;Statistic {name} is not supported.&#34;)
+            self.statistics[name] = None
+
+    def set_all_statistics(self) -&gt; None:
+        &#34;&#34;&#34;
+        Enable all statistics supported by the current active language plugin.
+        Enabling all statistics increases word generation computation time, especially for statistics such as ned1.
+        &#34;&#34;&#34;
+        self.set_statistics(self.supported_statistics)
+
+    def apply_statistics(self, sequence: str = None) -&gt; None:
+        &#34;&#34;&#34;
+        Apply all statistics which were set beforehand.
+        &#34;&#34;&#34;
+        if sequence == None:
+            sequence = self.current_sequence
+        for name in self.statistics:
+            function = eval(&#34;self.plugin_module.statistic_%s&#34; % (name))
+            if (sequence, name) in self.stat_cache:
+                self.statistics[name] = self.stat_cache[(sequence, name)]
+            else:
+                self.statistics[name] = function(self, sequence)
+                self.stat_cache[(sequence, name)] = self.statistics[name]
+            if &#39;match&#39; in function.__dict__:
+                self.match_statistics[name] = function.match(
+                    self.statistics[name], self.reference_statistics[name])
+            if &#39;difference&#39; in function.__dict__:
+                self.difference_statistics[name] = function.difference(
+                    self.statistics[name], self.reference_statistics[name])
+
+    def clear_statistics(self) -&gt; None:
+        &#34;&#34;&#34;
+        Clear all the statistics set previously.
+        &#34;&#34;&#34;
+        self.statistics = {}
+
+    def __clear_stat_cache(self) -&gt; None:
+        &#34;&#34;&#34;
+        Clears the statistics cache. Only used by Wuggy internally.
+        &#34;&#34;&#34;
+        self.stat_cache = {}
+
+    def __clear_sequence_cache(self) -&gt; None:
+        &#34;&#34;&#34;
+        Clears the sequence cache. Only used by Wuggy internally.
+        &#34;&#34;&#34;
+        self.sequence_cache = []
+
+    def list_output_modes(self) -&gt; [str]:
+        &#34;&#34;&#34;
+        List output modes of the currently activated language plugin.
+        &#34;&#34;&#34;
+        names = [name for name in dir(
+            self.plugin_module) if name.startswith(&#39;output&#39;)]
+        return [name.replace(&#39;output_&#39;, &#39;&#39;) for name in names]
+
+    def set_output_mode(self, name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Set an output mode supported by the currently activated language plugin.
+        &#34;&#34;&#34;
+        if name not in self.list_output_modes():
+            raise ValueError(f&#34;Output mode {name} is not supported.&#34;)
+        self.output_mode = eval(&#34;self.plugin_module.output_%s&#34; % (name))
+
+    def set_attribute_filter(self, name: str) -&gt; None:
+        &#34;&#34;&#34;
+        Set an attribute filter supported by the currently activated language plugin.
+        &#34;&#34;&#34;
+        reference_sequence = self.reference_sequence
+        if name not in self.supported_attribute_filters:
+            raise ValueError(
+                f&#34;Attribute filter {name} is not supported.&#34;)
+        self.attribute_filters[name] = reference_sequence
+        self.attribute_subchain = None
+
+    def set_attribute_filters(self, names: [str]) -&gt; None:
+        &#34;&#34;&#34;
+        Set attribute filters supported by the currently activated language plugin.
+        &#34;&#34;&#34;
+        for name in names:
+            self.set_attribute_filter(name)
+
+    def __apply_attribute_filters(self) -&gt; None:
+        &#34;&#34;&#34;
+        Apply all set attribute filters.
+        This is currently used by generate() internally, do not call on your own.
+        &#34;&#34;&#34;
+        for attribute, reference_sequence in self.attribute_filters.items():
+            subchain = self.attribute_subchain if self.attribute_subchain != None else self.bigramchain
+            self.attribute_subchain = subchain.attribute_filter(
+                reference_sequence, attribute)
+
+    def clear_attribute_filters(self) -&gt; None:
+        &#34;&#34;&#34;
+        Remove all set attribute filters.
+        &#34;&#34;&#34;
+        self.attribute_filters = {}
+
+    def set_frequency_filter(self, lower: int, upper: int) -&gt; None:
+        &#34;&#34;&#34;
+        Sets the frequency filter for concentric search.
+        Stricter search (small values for lower and upper) result in faster word generation.
+        &#34;&#34;&#34;
+        self.frequency_filter = (self.reference_sequence, lower, upper)
+
+    def clear_frequency_filter(self) -&gt; None:
+        &#34;&#34;&#34;
+        Clear the previously set frequency filter.
+        &#34;&#34;&#34;
+        self.frequency_filter = None
+        self.frequency_subchain = None
+
+    def apply_frequency_filter(self) -&gt; None:
+        &#34;&#34;&#34;
+        Apply the previously set frequency filter.
+        &#34;&#34;&#34;
+        if self.frequency_filter is None:
+            raise Exception(&#34;No frequency filter was set&#34;)
+        reference_sequence, lower, upper = self.frequency_filter
+        subchain = self.attribute_subchain if self.attribute_subchain != None else self.bigramchain
+        self.frequency_subchain = subchain.frequency_filter(
+            reference_sequence, lower, upper)
+
+    def set_segmentset_filter(self, segmentset: set) -&gt; None:
+        &#34;&#34;&#34;
+        TODO: finish docstring, make sure the purpose of this function is clear
+        &#34;&#34;&#34;
+        if type(segmentset) != set:
+            segmentset = set(segmentset)
+        self.segmentset_filter = segmentset
+
+    def clear_segmentset_filter(self) -&gt; None:
+        &#34;&#34;&#34;
+        Set the previously set segmentset filter.
+        &#34;&#34;&#34;
+        self.segmentset_filter = None
+        self.segmentset_subchain = None
+
+    def apply_segmentset_filter(self) -&gt; None:
+        &#34;&#34;&#34;
+        Apply the previously set segmentset filter.
+        &#34;&#34;&#34;
+        if self.segmentset_filter is None:
+            raise Exception(&#34;No segmentset filter has been set&#34;)
+        if self.frequency_subchain != None:
+            subchain = self.frequency_subchain
+        elif self.attribute_subchain != None:
+            subchain = self.attribute_subchain
+        else:
+            subchain = self.bigramchain
+        self.segmentset_subchain = subchain.segmentset_filter(
+            self.reference_sequence, self.segmentset_filter)
+
+    @_loaded_plugin_required_generator
+    def generate_simple(self, sequence: str) -&gt; Generator[str, None, None]:
+        &#34;&#34;&#34;
+        Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
+        Uses sensible defaults which do not have to be set by the user.
+        Only pseudowords with a large overlap with the input sequence are returned.
+        This method always clears the sequence cache.
+        &#34;&#34;&#34;
+        self.__clear_sequence_cache()
+        if self.lookup(sequence) == None:
+            raise Exception(
+                f&#34;Word was not found in lexicon {self.current_language_plugin_name}&#34;)
+        self.set_reference_sequence(sequence)
+        self.set_output_mode(&#34;plain&#34;)
+        subchain = self.bigramchain
+        self.set_statistic(&#34;overlap_ratio&#34;)
+        self.set_statistic(&#34;lexicality&#34;)
+
+        for i in range(1, 10, 1):
+            # TODO: should we set the frequency filter automatically as done here? Probably most user friendly.
+            self.set_frequency_filter(2**i, 2**i)
+            self.apply_frequency_filter()
+            subchain = self.frequency_subchain
+            subchain = subchain.clean(len(self.reference_sequence)-1)
+            subchain.set_startkeys(self.reference_sequence)
+            for sequence in subchain.generate():
+                if self.plugin_module.output_plain(sequence) in self.sequence_cache:
+                    pass
+                else:
+                    self.current_sequence = sequence
+                    self.apply_statistics()
+                    # TODO: should we set the overlap ratio like here to generate &#39;close&#39; pseudowords by default?
+                    if (self.statistics[&#34;overlap_ratio&#34;] == Fraction(2, 3) and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
+                        # TODO: do we even need to add to cache if this function clears cache anyway?
+                        self.sequence_cache.append(
+                            self.plugin_module.output_plain(sequence))
+
+                        yield self.output_mode(sequence)
+
+    @_loaded_plugin_required_generator
+    def generate(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
+        &#34;&#34;&#34;
+        Creates a generator which can be iterated to return generated pseudowords.
+        If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
+        &#34;&#34;&#34;
+        if clear_cache == True:
+            self.__clear_sequence_cache()
+        if self.output_mode == None:
+            self.set_output_mode(&#34;plain&#34;)
+        if len(self.attribute_filters) == 0 and self.frequency_subchain == None and self.segmentset_subchain == None:
+            subchain = self.bigramchain
+        if len(self.attribute_filters) != 0:
+            if self.attribute_subchain == None:
+                self.__apply_attribute_filters()
+            subchain = self.attribute_subchain
+        if self.frequency_filter != None:
+            self.apply_frequency_filter()
+            subchain = self.frequency_subchain
+        if self.segmentset_filter != None:
+            self.apply_segmentset_filter()
+            subchain = self.segmentset_subchain
+        if self.reference_sequence != None:
+            subchain = subchain.clean(len(self.reference_sequence)-1)
+            subchain.set_startkeys(self.reference_sequence)
+        else:
+            warnings.warn(
+                &#34;No reference sequence was set. Ignore this message if this was intentional.&#34;)
+            subchain.set_startkeys()
+        for sequence in subchain.generate():
+            if self.plugin_module.output_plain(sequence) in self.sequence_cache:
+                pass
+            else:
+                self.sequence_cache.append(
+                    self.plugin_module.output_plain(sequence))
+                self.current_sequence = sequence
+                self.apply_statistics()
+                yield self.output_mode(sequence)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="wuggy.generators.pseudowordgenerator.PseudowordGenerator" href="pseudowordgenerator.html#wuggy.generators.pseudowordgenerator.PseudowordGenerator">PseudowordGenerator</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_frequency_filter"><code class="name flex">
+<span>def <span class="ident">apply_frequency_filter</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Apply the previously set frequency filter.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def apply_frequency_filter(self) -&gt; None:
+    &#34;&#34;&#34;
+    Apply the previously set frequency filter.
+    &#34;&#34;&#34;
+    if self.frequency_filter is None:
+        raise Exception(&#34;No frequency filter was set&#34;)
+    reference_sequence, lower, upper = self.frequency_filter
+    subchain = self.attribute_subchain if self.attribute_subchain != None else self.bigramchain
+    self.frequency_subchain = subchain.frequency_filter(
+        reference_sequence, lower, upper)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_segmentset_filter"><code class="name flex">
+<span>def <span class="ident">apply_segmentset_filter</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Apply the previously set segmentset filter.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def apply_segmentset_filter(self) -&gt; None:
+    &#34;&#34;&#34;
+    Apply the previously set segmentset filter.
+    &#34;&#34;&#34;
+    if self.segmentset_filter is None:
+        raise Exception(&#34;No segmentset filter has been set&#34;)
+    if self.frequency_subchain != None:
+        subchain = self.frequency_subchain
+    elif self.attribute_subchain != None:
+        subchain = self.attribute_subchain
+    else:
+        subchain = self.bigramchain
+    self.segmentset_subchain = subchain.segmentset_filter(
+        self.reference_sequence, self.segmentset_filter)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_statistics"><code class="name flex">
+<span>def <span class="ident">apply_statistics</span></span>(<span>self, sequence: str = None) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Apply all statistics which were set beforehand.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def apply_statistics(self, sequence: str = None) -&gt; None:
+    &#34;&#34;&#34;
+    Apply all statistics which were set beforehand.
+    &#34;&#34;&#34;
+    if sequence == None:
+        sequence = self.current_sequence
+    for name in self.statistics:
+        function = eval(&#34;self.plugin_module.statistic_%s&#34; % (name))
+        if (sequence, name) in self.stat_cache:
+            self.statistics[name] = self.stat_cache[(sequence, name)]
+        else:
+            self.statistics[name] = function(self, sequence)
+            self.stat_cache[(sequence, name)] = self.statistics[name]
+        if &#39;match&#39; in function.__dict__:
+            self.match_statistics[name] = function.match(
+                self.statistics[name], self.reference_statistics[name])
+        if &#39;difference&#39; in function.__dict__:
+            self.difference_statistics[name] = function.difference(
+                self.statistics[name], self.reference_statistics[name])</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_attribute_filters"><code class="name flex">
+<span>def <span class="ident">clear_attribute_filters</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Remove all set attribute filters.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def clear_attribute_filters(self) -&gt; None:
+    &#34;&#34;&#34;
+    Remove all set attribute filters.
+    &#34;&#34;&#34;
+    self.attribute_filters = {}</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_frequency_filter"><code class="name flex">
+<span>def <span class="ident">clear_frequency_filter</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Clear the previously set frequency filter.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def clear_frequency_filter(self) -&gt; None:
+    &#34;&#34;&#34;
+    Clear the previously set frequency filter.
+    &#34;&#34;&#34;
+    self.frequency_filter = None
+    self.frequency_subchain = None</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_segmentset_filter"><code class="name flex">
+<span>def <span class="ident">clear_segmentset_filter</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set the previously set segmentset filter.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def clear_segmentset_filter(self) -&gt; None:
+    &#34;&#34;&#34;
+    Set the previously set segmentset filter.
+    &#34;&#34;&#34;
+    self.segmentset_filter = None
+    self.segmentset_subchain = None</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics"><code class="name flex">
+<span>def <span class="ident">clear_statistics</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Clear all the statistics set previously.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def clear_statistics(self) -&gt; None:
+    &#34;&#34;&#34;
+    Clear all the statistics set previously.
+    &#34;&#34;&#34;
+    self.statistics = {}</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate"><code class="name flex">
+<span>def <span class="ident">generate</span></span>(<span>self, clear_cache: bool = True) ‑> Union[Generator[str, NoneType, NoneType], Generator[tuple, NoneType, NoneType]]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a generator which can be iterated to return generated pseudowords.
+If attributes such as "output_mode" are not set, sensible defaults are used.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@_loaded_plugin_required_generator
+def generate(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
+    &#34;&#34;&#34;
+    Creates a generator which can be iterated to return generated pseudowords.
+    If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
+    &#34;&#34;&#34;
+    if clear_cache == True:
+        self.__clear_sequence_cache()
+    if self.output_mode == None:
+        self.set_output_mode(&#34;plain&#34;)
+    if len(self.attribute_filters) == 0 and self.frequency_subchain == None and self.segmentset_subchain == None:
+        subchain = self.bigramchain
+    if len(self.attribute_filters) != 0:
+        if self.attribute_subchain == None:
+            self.__apply_attribute_filters()
+        subchain = self.attribute_subchain
+    if self.frequency_filter != None:
+        self.apply_frequency_filter()
+        subchain = self.frequency_subchain
+    if self.segmentset_filter != None:
+        self.apply_segmentset_filter()
+        subchain = self.segmentset_subchain
+    if self.reference_sequence != None:
+        subchain = subchain.clean(len(self.reference_sequence)-1)
+        subchain.set_startkeys(self.reference_sequence)
+    else:
+        warnings.warn(
+            &#34;No reference sequence was set. Ignore this message if this was intentional.&#34;)
+        subchain.set_startkeys()
+    for sequence in subchain.generate():
+        if self.plugin_module.output_plain(sequence) in self.sequence_cache:
+            pass
+        else:
+            self.sequence_cache.append(
+                self.plugin_module.output_plain(sequence))
+            self.current_sequence = sequence
+            self.apply_statistics()
+            yield self.output_mode(sequence)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate_simple"><code class="name flex">
+<span>def <span class="ident">generate_simple</span></span>(<span>self, sequence: str) ‑> Generator[str, NoneType, NoneType]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
+Uses sensible defaults which do not have to be set by the user.
+Only pseudowords with a large overlap with the input sequence are returned.
+This method always clears the sequence cache.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@_loaded_plugin_required_generator
+def generate_simple(self, sequence: str) -&gt; Generator[str, None, None]:
+    &#34;&#34;&#34;
+    Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
+    Uses sensible defaults which do not have to be set by the user.
+    Only pseudowords with a large overlap with the input sequence are returned.
+    This method always clears the sequence cache.
+    &#34;&#34;&#34;
+    self.__clear_sequence_cache()
+    if self.lookup(sequence) == None:
+        raise Exception(
+            f&#34;Word was not found in lexicon {self.current_language_plugin_name}&#34;)
+    self.set_reference_sequence(sequence)
+    self.set_output_mode(&#34;plain&#34;)
+    subchain = self.bigramchain
+    self.set_statistic(&#34;overlap_ratio&#34;)
+    self.set_statistic(&#34;lexicality&#34;)
+
+    for i in range(1, 10, 1):
+        # TODO: should we set the frequency filter automatically as done here? Probably most user friendly.
+        self.set_frequency_filter(2**i, 2**i)
+        self.apply_frequency_filter()
+        subchain = self.frequency_subchain
+        subchain = subchain.clean(len(self.reference_sequence)-1)
+        subchain.set_startkeys(self.reference_sequence)
+        for sequence in subchain.generate():
+            if self.plugin_module.output_plain(sequence) in self.sequence_cache:
+                pass
+            else:
+                self.current_sequence = sequence
+                self.apply_statistics()
+                # TODO: should we set the overlap ratio like here to generate &#39;close&#39; pseudowords by default?
+                if (self.statistics[&#34;overlap_ratio&#34;] == Fraction(2, 3) and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
+                    # TODO: do we even need to add to cache if this function clears cache anyway?
+                    self.sequence_cache.append(
+                        self.plugin_module.output_plain(sequence))
+
+                    yield self.output_mode(sequence)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies"><code class="name flex">
+<span>def <span class="ident">get_limit_frequencies</span></span>(<span>self, fields)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_limit_frequencies(self, fields):
+    # TODO: docstring and parameter type hint
+    limits = []
+    if tuple(fields) not in self.bigramchain.limit_frequencies:
+        self.bigramchain.build_limit_frequencies(fields)
+    for i in range(0, len(self.reference_sequence)-1):
+        subkey_a = (i, tuple(
+            [self.reference_sequence[i].__getattribute__(field) for field in fields]))
+        subkey_b = (
+            i+1, tuple([self.reference_sequence[i+1].__getattribute__(field) for field in fields]))
+        subkey = (subkey_a, subkey_b)
+        try:
+            limits.append(
+                self.bigramchain.limit_frequencies[tuple(fields)][subkey])
+        except:
+            limits.append([{max: 0, min: 0}])
+    return limits</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes"><code class="name flex">
+<span>def <span class="ident">list_output_modes</span></span>(<span>self) ‑> [<class 'str'>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>List output modes of the currently activated language plugin.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_output_modes(self) -&gt; [str]:
+    &#34;&#34;&#34;
+    List output modes of the currently activated language plugin.
+    &#34;&#34;&#34;
+    names = [name for name in dir(
+        self.plugin_module) if name.startswith(&#39;output&#39;)]
+    return [name.replace(&#39;output_&#39;, &#39;&#39;) for name in names]</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.load"><code class="name flex">
+<span>def <span class="ident">load</span></span>(<span>self, language_plugin_name: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Loads in a language plugin, if available, and stores the corresponding bigramchains.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load(self, language_plugin_name: str) -&gt; None:
+    &#34;&#34;&#34;
+    Loads in a language plugin, if available, and stores the corresponding bigramchains.
+    &#34;&#34;&#34;
+    plugin_module = self.supported_language_plugins.get(
+        language_plugin_name)
+    if plugin_module is None:
+        raise ValueError(
+            f&#34;This language is not supported by Wuggy at this moment. Wuggy supports: {(&#39;, &#39;.join(self.supported_language_plugins))}&#34;)
+    if language_plugin_name not in self.bigramchains:
+        path = os.path.join(self.data_path, plugin_module.default_data)
+        if (not os.path.exists(self.data_path)):
+            os.makedirs(os.path)
+        if (not os.path.isfile(path)):
+            self.__download_language_plugin(language_plugin_name, path)
+        data_file = codecs.open(path, &#39;r&#39;, encoding=&#39;utf-8&#39;)
+        self.bigramchains[plugin_module.__name__] = BigramChain(
+            plugin_module)
+        self.bigramchains[plugin_module.__name__].load(data_file)
+    self.__activate(plugin_module.__name__)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.lookup"><code class="name flex">
+<span>def <span class="ident">lookup</span></span>(<span>self, reference: str) ‑> Union[str, NoneType]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Look up a given reference (word) from the currently active lookup lexicon.
+Returns None if the word is not found.
+Commonly used to error check if a given word exists before passing it as a reference sequence.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def lookup(self, reference: str) -&gt; Optional[str]:
+    &#34;&#34;&#34;
+    Look up a given reference (word) from the currently active lookup lexicon.
+    Returns None if the word is not found.
+    Commonly used to error check if a given word exists before passing it as a reference sequence.
+    &#34;&#34;&#34;
+    return self.lookup_lexicon.get(reference, None)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_all_statistics"><code class="name flex">
+<span>def <span class="ident">set_all_statistics</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Enable all statistics supported by the current active language plugin.
+Enabling all statistics increases word generation computation time, especially for statistics such as ned1.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_all_statistics(self) -&gt; None:
+    &#34;&#34;&#34;
+    Enable all statistics supported by the current active language plugin.
+    Enabling all statistics increases word generation computation time, especially for statistics such as ned1.
+    &#34;&#34;&#34;
+    self.set_statistics(self.supported_statistics)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filter"><code class="name flex">
+<span>def <span class="ident">set_attribute_filter</span></span>(<span>self, name: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set an attribute filter supported by the currently activated language plugin.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_attribute_filter(self, name: str) -&gt; None:
+    &#34;&#34;&#34;
+    Set an attribute filter supported by the currently activated language plugin.
+    &#34;&#34;&#34;
+    reference_sequence = self.reference_sequence
+    if name not in self.supported_attribute_filters:
+        raise ValueError(
+            f&#34;Attribute filter {name} is not supported.&#34;)
+    self.attribute_filters[name] = reference_sequence
+    self.attribute_subchain = None</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filters"><code class="name flex">
+<span>def <span class="ident">set_attribute_filters</span></span>(<span>self, names: [<class 'str'>]) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set attribute filters supported by the currently activated language plugin.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_attribute_filters(self, names: [str]) -&gt; None:
+    &#34;&#34;&#34;
+    Set attribute filters supported by the currently activated language plugin.
+    &#34;&#34;&#34;
+    for name in names:
+        self.set_attribute_filter(name)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_frequency_filter"><code class="name flex">
+<span>def <span class="ident">set_frequency_filter</span></span>(<span>self, lower: int, upper: int) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Sets the frequency filter for concentric search.
+Stricter search (small values for lower and upper) result in faster word generation.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_frequency_filter(self, lower: int, upper: int) -&gt; None:
+    &#34;&#34;&#34;
+    Sets the frequency filter for concentric search.
+    Stricter search (small values for lower and upper) result in faster word generation.
+    &#34;&#34;&#34;
+    self.frequency_filter = (self.reference_sequence, lower, upper)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_output_mode"><code class="name flex">
+<span>def <span class="ident">set_output_mode</span></span>(<span>self, name: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set an output mode supported by the currently activated language plugin.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_output_mode(self, name: str) -&gt; None:
+    &#34;&#34;&#34;
+    Set an output mode supported by the currently activated language plugin.
+    &#34;&#34;&#34;
+    if name not in self.list_output_modes():
+        raise ValueError(f&#34;Output mode {name} is not supported.&#34;)
+    self.output_mode = eval(&#34;self.plugin_module.output_%s&#34; % (name))</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_reference_sequence"><code class="name flex">
+<span>def <span class="ident">set_reference_sequence</span></span>(<span>self, sequence: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set the reference sequence.
+This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@_loaded_plugin_required
+def set_reference_sequence(self, sequence: str) -&gt; None:
+    &#34;&#34;&#34;
+    Set the reference sequence.
+    This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.
+    &#34;&#34;&#34;
+    self.reference_sequence = self.plugin_module.transform(
+        sequence).representation
+    self.reference_sequence_frequencies = self.bigramchain.get_frequencies(
+        self.reference_sequence)
+    self.__clear_stat_cache()
+    for name in self.__get_statistics():
+        function = eval(&#34;self.plugin_module.statistic_%s&#34; % (name))
+        self.reference_statistics[name] = function(
+            self, self.reference_sequence)</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_segmentset_filter"><code class="name flex">
+<span>def <span class="ident">set_segmentset_filter</span></span>(<span>self, segmentset: set) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>TODO: finish docstring, make sure the purpose of this function is clear</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_segmentset_filter(self, segmentset: set) -&gt; None:
+    &#34;&#34;&#34;
+    TODO: finish docstring, make sure the purpose of this function is clear
+    &#34;&#34;&#34;
+    if type(segmentset) != set:
+        segmentset = set(segmentset)
+    self.segmentset_filter = segmentset</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistic"><code class="name flex">
+<span>def <span class="ident">set_statistic</span></span>(<span>self, name: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Enable a statistic based on its name.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_statistic(self, name: str) -&gt; None:
+    &#34;&#34;&#34;
+    Enable a statistic based on its name.
+    &#34;&#34;&#34;
+    if name not in self.supported_statistics:
+        raise ValueError(f&#34;Statistic {name} is not supported.&#34;)
+    self.statistics[name] = None</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistics"><code class="name flex">
+<span>def <span class="ident">set_statistics</span></span>(<span>self, names: [<class 'str'>]) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Enables statistics based on their names.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_statistics(self, names: [str]) -&gt; None:
+    &#34;&#34;&#34;
+    Enables statistics based on their names.
+    &#34;&#34;&#34;
+    for name in names:
+        if name not in self.supported_statistics:
+            self.statistics = {}
+            raise ValueError(f&#34;Statistic {name} is not supported.&#34;)
+        self.statistics[name] = None</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="wuggy.generators.pseudowordgenerator.PseudowordGenerator" href="pseudowordgenerator.html#wuggy.generators.pseudowordgenerator.PseudowordGenerator">PseudowordGenerator</a></b></code>:
+<ul class="hlist">
+<li><code><a title="wuggy.generators.pseudowordgenerator.PseudowordGenerator.initialize" href="pseudowordgenerator.html#wuggy.generators.pseudowordgenerator.PseudowordGenerator.initialize">initialize</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="wuggy.generators" href="index.html">wuggy.generators</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator" href="#wuggy.generators.wuggygenerator.WuggyGenerator">WuggyGenerator</a></code></h4>
+<ul class="">
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.apply_frequency_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.apply_frequency_filter">apply_frequency_filter</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.apply_segmentset_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.apply_segmentset_filter">apply_segmentset_filter</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.apply_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.apply_statistics">apply_statistics</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_attribute_filters" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_attribute_filters">clear_attribute_filters</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_frequency_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_frequency_filter">clear_frequency_filter</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_segmentset_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_segmentset_filter">clear_segmentset_filter</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics">clear_statistics</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.generate" href="#wuggy.generators.wuggygenerator.WuggyGenerator.generate">generate</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.generate_simple" href="#wuggy.generators.wuggygenerator.WuggyGenerator.generate_simple">generate_simple</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies" href="#wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies">get_limit_frequencies</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes" href="#wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes">list_output_modes</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.load" href="#wuggy.generators.wuggygenerator.WuggyGenerator.load">load</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.lookup" href="#wuggy.generators.wuggygenerator.WuggyGenerator.lookup">lookup</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_all_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_all_statistics">set_all_statistics</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filter">set_attribute_filter</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filters" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filters">set_attribute_filters</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_frequency_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_frequency_filter">set_frequency_filter</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_output_mode" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_output_mode">set_output_mode</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_reference_sequence" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_reference_sequence">set_reference_sequence</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_segmentset_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_segmentset_filter">set_segmentset_filter</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistic" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_statistic">set_statistic</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_statistics">set_statistics</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>

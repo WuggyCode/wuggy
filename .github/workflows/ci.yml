@@ -1,0 +1,25 @@
+name: Build Documentation and Deploy
+on:
+  push:
+    branches:
+      - documentation
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Install Dependencies and Build Documentation
+        run: |
+          pip install -r dev-requirements.txt
+          pdoc --html --output-dir build_documentation ./wuggy
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build_documentation

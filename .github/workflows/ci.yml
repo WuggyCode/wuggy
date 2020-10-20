@@ -2,7 +2,7 @@ name: Build Documentation and Deploy
 on:
   push:
     branches:
-      - documentation
+      - master
 
 jobs:
   build-and-deploy:

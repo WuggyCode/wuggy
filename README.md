@@ -17,6 +17,6 @@ This repository is a work-in-progress and will be finalized in a couple of month
 2. Run `pip install -r dev-requirements.txt`. Note that some dependencies may require C extensions: pay close attention to any error messages you may receive during installation.
    Make sure you run this command using Python >= 3.6, optionally within a virtual environment.
 
-## Generate documentation
+### Generate documentation
 
-Documentation is generated using `pdoc`. To update documentation, run `pdoc --html --output-dir build ./wuggy --force`. Documentation is updated automatically when changes are pushed to master using GitHub Actions.
+Documentation is generated using `pdoc`. To update documentation locally , run `pdoc --html --output-dir build ./wuggy --force`. Documentation is updated automatically to the live documentation site when changes are pushed to master using GitHub Actions.

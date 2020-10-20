@@ -17,7 +17,7 @@ from functools import wraps
 from urllib.request import urlopen
 
 
-def loaded_plugin_required(func):
+def _loaded_plugin_required(func):
     """
     Decorator used for regular Wuggy methods to ensure that a valid language plugin is loaded before execution.
     """
@@ -30,7 +30,7 @@ def loaded_plugin_required(func):
     return wrapper
 
 
-def loaded_plugin_required_generator(func):
+def _loaded_plugin_required_generator(func):
     """
     Decorator used for Wuggy generator methods to ensure that a valid language plugin is loaded before execution.
     """
@@ -203,7 +203,7 @@ class WuggyGenerator(PseudowordGenerator):
         """
         return self.plugin_module.default_fields
 
-    @loaded_plugin_required
+    @_loaded_plugin_required
     def set_reference_sequence(self, sequence: str) -> None:
         """
         Set the reference sequence.
@@ -256,7 +256,7 @@ class WuggyGenerator(PseudowordGenerator):
 
     def set_statistics(self, names: [str]) -> None:
         """
-        Enables statistics based on their name.
+        Enables statistics based on their names.
         """
         for name in names:
             if name not in self.supported_statistics:
@@ -414,7 +414,7 @@ class WuggyGenerator(PseudowordGenerator):
         self.segmentset_subchain = subchain.segmentset_filter(
             self.reference_sequence, self.segmentset_filter)
 
-    @loaded_plugin_required_generator
+    @_loaded_plugin_required_generator
     def generate_simple(self, sequence: str) -> Generator[str, None, None]:
         """
         Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
@@ -453,7 +453,7 @@ class WuggyGenerator(PseudowordGenerator):
 
                         yield self.output_mode(sequence)
 
-    @loaded_plugin_required_generator
+    @_loaded_plugin_required_generator
     def generate(self, clear_cache: bool = True) -> Union[Generator[str, None, None], Generator[tuple, None, None]]:
         """
         Creates a generator which can be iterated to return generated pseudowords.

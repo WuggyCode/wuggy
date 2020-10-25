@@ -140,7 +140,6 @@ class BigramChain(defaultdict):
         """
         Remove chains that can not be completed.
         """
-        n = len(self)
         result = BigramChain(self.plugin_module)
         for key, nextkeys in self.items():
             for nextkey, frequency in nextkeys.items():

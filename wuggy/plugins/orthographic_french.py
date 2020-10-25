@@ -2,6 +2,7 @@
 # pylint: disable=unused-wildcard-import
 from .orth.fr import Language
 from .subsyllabic_common import *
+# TODO: include configs in data folder
 default_data = 'orthographic_french.txt'
 default_neighbor_lexicon = 'orthographic_french.txt'
 default_word_lexicon = 'orthographic_french.txt'

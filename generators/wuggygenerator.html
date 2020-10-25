@@ -39,13 +39,13 @@ from .pseudowordgenerator import PseudowordGenerator
 from math import floor
 from enum import Enum
 import warnings
-from typing import Optional, Callable, Generator, Union, Any
+from typing import Optional, Callable, Generator, Union, Any, Dict
 from ..plugins import orthographic_basque, orthographic_dutch, orthographic_english, orthographic_french, orthographic_german, orthographic_italian, orthographic_polish, orthographic_serbian_cyrillic, orthographic_serbian_latin, orthographic_spanish, orthographic_vietnamese, phonetic_english_celex, phonetic_english_cmu, phonetic_french, phonetic_italian
 from functools import wraps
 from urllib.request import urlopen
+from time import time
 
-
-def _loaded_plugin_required(func):
+def _loaded_language_plugin_required(func):
     &#34;&#34;&#34;
     Decorator used for regular Wuggy methods to ensure that a valid language plugin is loaded before execution.
     &#34;&#34;&#34;
@@ -54,11 +54,11 @@ def _loaded_plugin_required(func):
         if not hasattr(args[0], &#39;plugin_module&#39;):
             raise Exception(
                 &#34;This function cannot be called if no language plugin is loaded!&#34;)
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
     return wrapper
 
 
-def _loaded_plugin_required_generator(func):
+def _loaded_language_plugin_required_generator(func):
     &#34;&#34;&#34;
     Decorator used for Wuggy generator methods to ensure that a valid language plugin is loaded before execution.
     &#34;&#34;&#34;
@@ -72,22 +72,20 @@ def _loaded_plugin_required_generator(func):
             yield val
     return wrapper
 
-
 class WuggyGenerator(PseudowordGenerator):
+    supported_language_plugins = {&#34;orthographic_dutch&#34;: orthographic_dutch, &#34;orthographic_english&#34;: orthographic_english, &#34;orthographic_french&#34;: orthographic_french, &#34;orthographic_german&#34;: orthographic_german, &#34;orthographic_italian&#34;: orthographic_italian, &#34;orthographic_polish&#34;: orthographic_polish, &#34;orthographic_serbian_cyrillic&#34;: orthographic_serbian_cyrillic,
+                                  &#34;orthographic_serbian_latin&#34;: orthographic_serbian_latin, &#34;orthographic_spanish&#34;: orthographic_spanish, &#34;orthographic_vietnamese&#34;: orthographic_vietnamese, &#34;phonetic_english_celex&#34;: phonetic_english_celex, &#34;phonetic_english_cmu&#34;: phonetic_english_cmu, &#34;phonetic_french&#34;: phonetic_french, &#34;phonetic_italian&#34;: phonetic_italian}
+
     def __init__(self):
         PseudowordGenerator.__init__(self)
         self.data_path = os.path.join(os.path.dirname(__file__), &#34;..&#34;, &#34;data&#34;)
         self.bigramchain = None
         self.bigramchains = {}
-        self.supported_language_plugins = {&#34;orthographic_dutch&#34;: orthographic_dutch, &#34;orthographic_english&#34;: orthographic_english, &#34;orthographic_french&#34;: orthographic_french, &#34;orthographic_german&#34;: orthographic_german, &#34;orthographic_italian&#34;: orthographic_italian, &#34;orthographic_polish&#34;: orthographic_polish, &#34;orthographic_serbian_cyrillic&#34;: orthographic_serbian_cyrillic,
-                                           &#34;orthographic_serbian_latin&#34;: orthographic_serbian_latin, &#34;orthographic_spanish&#34;: orthographic_spanish, &#34;orthographic_vietnamese&#34;: orthographic_vietnamese, &#34;phonetic_english_celex&#34;: phonetic_english_celex, &#34;phonetic_english_cmu&#34;: phonetic_english_cmu, &#34;phonetic_french&#34;: phonetic_french, &#34;phonetic_italian&#34;: phonetic_italian}
         self.__language_plugin_repository_url = &#34;https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/&#34;
         self.attribute_subchain = None
         self.frequency_subchain = None
-        self.segmentset_subchain = None
         self.reference_sequence = None
         self.frequency_filter = None
-        self.segmentset_filter = None
         self.current_sequence = None
         self.output_mode = None
         self.supported_statistics = ()
@@ -130,6 +128,7 @@ class WuggyGenerator(PseudowordGenerator):
         Downloads and saves given language plugin to local storage from the corresponding file repository.
         &#34;&#34;&#34;
         # TODO: should this become a prompt? Currently auto-downloads.
+        # TODO: ensure this works if you use Wuggy as a module, there are issues currently.
         warnings.warn(
             f&#34;The language plugin {language_plugin_name} was not found. Wuggy is currently downloading this plugin for you...&#34;)
         raw_file = urlopen(
@@ -231,7 +230,7 @@ class WuggyGenerator(PseudowordGenerator):
         &#34;&#34;&#34;
         return self.plugin_module.default_fields
 
-    @_loaded_plugin_required
+    @_loaded_language_plugin_required
     def set_reference_sequence(self, sequence: str) -&gt; None:
         &#34;&#34;&#34;
         Set the reference sequence.
@@ -412,86 +411,80 @@ class WuggyGenerator(PseudowordGenerator):
         self.frequency_subchain = subchain.frequency_filter(
             reference_sequence, lower, upper)
 
-    def set_segmentset_filter(self, segmentset: set) -&gt; None:
+    @_loaded_language_plugin_required
+    def generate_classic(self, input_sequences: [str], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: Fraction = Fraction(2,3), match_letter_length: bool = True) -&gt; [Dict]:
         &#34;&#34;&#34;
-        TODO: finish docstring, make sure the purpose of this function is clear
+        This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
+        The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
+        This method returns a list of pseudoword matches, including all match and difference statistics.
+        Beware that this method always clears the sequence cache and all previously set filters.
+        TODO: more verbose docstring with example return values
         &#34;&#34;&#34;
-        if type(segmentset) != set:
-            segmentset = set(segmentset)
-        self.segmentset_filter = segmentset
-
-    def clear_segmentset_filter(self) -&gt; None:
+        pseudoword_matches = []
+        for input_sequence in input_sequences:
+            pseudoword_matches.extend(self.__generate_classic_inner(input_sequence, ncandidates, max_search_time, subsyllabic_segment_overlap_ratio, match_letter_length))
+        return pseudoword_matches
+        
+    def __generate_classic_inner(self, input_sequence: str, ncandidates: int, max_search_time: int, subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool):
         &#34;&#34;&#34;
-        Set the previously set segmentset filter.
-        &#34;&#34;&#34;
-        self.segmentset_filter = None
-        self.segmentset_subchain = None
-
-    def apply_segmentset_filter(self) -&gt; None:
-        &#34;&#34;&#34;
-        Apply the previously set segmentset filter.
-        &#34;&#34;&#34;
-        if self.segmentset_filter is None:
-            raise Exception(&#34;No segmentset filter has been set&#34;)
-        if self.frequency_subchain != None:
-            subchain = self.frequency_subchain
-        elif self.attribute_subchain != None:
-            subchain = self.attribute_subchain
-        else:
-            subchain = self.bigramchain
-        self.segmentset_subchain = subchain.segmentset_filter(
-            self.reference_sequence, self.segmentset_filter)
-
-    @_loaded_plugin_required_generator
-    def generate_simple(self, sequence: str) -&gt; Generator[str, None, None]:
-        &#34;&#34;&#34;
-        Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
-        Uses sensible defaults which do not have to be set by the user.
-        Only pseudowords with a large overlap with the input sequence are returned.
-        This method always clears the sequence cache.
+        Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
+        Should only be used by WuggyGenerator internally.
         &#34;&#34;&#34;
         self.__clear_sequence_cache()
-        if self.lookup(sequence) == None:
+        self.clear_attribute_filters()
+        self.clear_frequency_filter()
+        if self.lookup(input_sequence) == None:
             raise Exception(
                 f&#34;Word was not found in lexicon {self.current_language_plugin_name}&#34;)
-        self.set_reference_sequence(sequence)
+        self.set_reference_sequence(input_sequence)
         self.set_output_mode(&#34;plain&#34;)
         subchain = self.bigramchain
-        self.set_statistic(&#34;overlap_ratio&#34;)
-        self.set_statistic(&#34;lexicality&#34;)
-
-        for i in range(1, 10, 1):
-            # TODO: should we set the frequency filter automatically as done here? Probably most user friendly.
-            self.set_frequency_filter(2**i, 2**i)
+        self.set_all_statistics()
+        starttime=time()
+        pseudoword_matches = []
+        self.set_attribute_filter(&#34;segment_length&#34;)
+        frequency_exponent = 1
+        # TODO: concentric search is always enabled. Keep it this way or let users disable concentric search?
+        while True:
+            self.set_frequency_filter(2**frequency_exponent,2**frequency_exponent)
+            frequency_exponent+=1
             self.apply_frequency_filter()
+            self.__apply_attribute_filters()
             subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence)-1)
             subchain.set_startkeys(self.reference_sequence)
             for sequence in subchain.generate():
+                if (time()-starttime) &gt;= max_search_time:
+                    return pseudoword_matches
                 if self.plugin_module.output_plain(sequence) in self.sequence_cache:
-                    pass
-                else:
-                    self.current_sequence = sequence
-                    self.apply_statistics()
-                    # TODO: should we set the overlap ratio like here to generate &#39;close&#39; pseudowords by default?
-                    if (self.statistics[&#34;overlap_ratio&#34;] == Fraction(2, 3) and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
-                        # TODO: do we even need to add to cache if this function clears cache anyway?
-                        self.sequence_cache.append(
-                            self.plugin_module.output_plain(sequence))
-
-                        yield self.output_mode(sequence)
-
-    @_loaded_plugin_required_generator
+                    continue
+                self.current_sequence = sequence
+                self.apply_statistics()
+                if match_letter_length and self.difference_statistics[&#34;plain_length&#34;] != 0:
+                    continue
+                
+                if (self.statistics[&#34;overlap_ratio&#34;] == subsyllabic_segment_overlap_ratio and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
+                    self.sequence_cache.append(
+                        self.plugin_module.output_plain(sequence))
+                    match = {&#34;word&#34;: input_sequence, &#34;match&#34;: self.output_mode(sequence)}
+                    match.update({&#34;statistics&#34;: self.statistics, &#34;difference_statistics&#34;: self.difference_statistics})
+                    
+                    pseudoword_matches.append(match)
+                    if len(pseudoword_matches) &gt;= ncandidates:
+                        return pseudoword_matches
+                                
+    @_loaded_language_plugin_required_generator
     def generate(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
         &#34;&#34;&#34;
         Creates a generator which can be iterated to return generated pseudowords.
         If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
+        TODO: write examples of advanced Wuggy usage with this method
         &#34;&#34;&#34;
         if clear_cache == True:
             self.__clear_sequence_cache()
         if self.output_mode == None:
             self.set_output_mode(&#34;plain&#34;)
-        if len(self.attribute_filters) == 0 and self.frequency_subchain == None and self.segmentset_subchain == None:
+        if len(self.attribute_filters) == 0 and self.frequency_subchain == None:
             subchain = self.bigramchain
         if len(self.attribute_filters) != 0:
             if self.attribute_subchain == None:
@@ -500,9 +493,6 @@ class WuggyGenerator(PseudowordGenerator):
         if self.frequency_filter != None:
             self.apply_frequency_filter()
             subchain = self.frequency_subchain
-        if self.segmentset_filter != None:
-            self.apply_segmentset_filter()
-            subchain = self.segmentset_subchain
         if self.reference_sequence != None:
             subchain = subchain.clean(len(self.reference_sequence)-1)
             subchain.set_startkeys(self.reference_sequence)
@@ -541,20 +531,19 @@ By adhering to this interface, different techniques can be accessed in relativel
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class WuggyGenerator(PseudowordGenerator):
+    supported_language_plugins = {&#34;orthographic_dutch&#34;: orthographic_dutch, &#34;orthographic_english&#34;: orthographic_english, &#34;orthographic_french&#34;: orthographic_french, &#34;orthographic_german&#34;: orthographic_german, &#34;orthographic_italian&#34;: orthographic_italian, &#34;orthographic_polish&#34;: orthographic_polish, &#34;orthographic_serbian_cyrillic&#34;: orthographic_serbian_cyrillic,
+                                  &#34;orthographic_serbian_latin&#34;: orthographic_serbian_latin, &#34;orthographic_spanish&#34;: orthographic_spanish, &#34;orthographic_vietnamese&#34;: orthographic_vietnamese, &#34;phonetic_english_celex&#34;: phonetic_english_celex, &#34;phonetic_english_cmu&#34;: phonetic_english_cmu, &#34;phonetic_french&#34;: phonetic_french, &#34;phonetic_italian&#34;: phonetic_italian}
+
     def __init__(self):
         PseudowordGenerator.__init__(self)
         self.data_path = os.path.join(os.path.dirname(__file__), &#34;..&#34;, &#34;data&#34;)
         self.bigramchain = None
         self.bigramchains = {}
-        self.supported_language_plugins = {&#34;orthographic_dutch&#34;: orthographic_dutch, &#34;orthographic_english&#34;: orthographic_english, &#34;orthographic_french&#34;: orthographic_french, &#34;orthographic_german&#34;: orthographic_german, &#34;orthographic_italian&#34;: orthographic_italian, &#34;orthographic_polish&#34;: orthographic_polish, &#34;orthographic_serbian_cyrillic&#34;: orthographic_serbian_cyrillic,
-                                           &#34;orthographic_serbian_latin&#34;: orthographic_serbian_latin, &#34;orthographic_spanish&#34;: orthographic_spanish, &#34;orthographic_vietnamese&#34;: orthographic_vietnamese, &#34;phonetic_english_celex&#34;: phonetic_english_celex, &#34;phonetic_english_cmu&#34;: phonetic_english_cmu, &#34;phonetic_french&#34;: phonetic_french, &#34;phonetic_italian&#34;: phonetic_italian}
         self.__language_plugin_repository_url = &#34;https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/&#34;
         self.attribute_subchain = None
         self.frequency_subchain = None
-        self.segmentset_subchain = None
         self.reference_sequence = None
         self.frequency_filter = None
-        self.segmentset_filter = None
         self.current_sequence = None
         self.output_mode = None
         self.supported_statistics = ()
@@ -597,6 +586,7 @@ By adhering to this interface, different techniques can be accessed in relativel
         Downloads and saves given language plugin to local storage from the corresponding file repository.
         &#34;&#34;&#34;
         # TODO: should this become a prompt? Currently auto-downloads.
+        # TODO: ensure this works if you use Wuggy as a module, there are issues currently.
         warnings.warn(
             f&#34;The language plugin {language_plugin_name} was not found. Wuggy is currently downloading this plugin for you...&#34;)
         raw_file = urlopen(
@@ -698,7 +688,7 @@ By adhering to this interface, different techniques can be accessed in relativel
         &#34;&#34;&#34;
         return self.plugin_module.default_fields
 
-    @_loaded_plugin_required
+    @_loaded_language_plugin_required
     def set_reference_sequence(self, sequence: str) -&gt; None:
         &#34;&#34;&#34;
         Set the reference sequence.
@@ -879,86 +869,80 @@ By adhering to this interface, different techniques can be accessed in relativel
         self.frequency_subchain = subchain.frequency_filter(
             reference_sequence, lower, upper)
 
-    def set_segmentset_filter(self, segmentset: set) -&gt; None:
+    @_loaded_language_plugin_required
+    def generate_classic(self, input_sequences: [str], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: Fraction = Fraction(2,3), match_letter_length: bool = True) -&gt; [Dict]:
         &#34;&#34;&#34;
-        TODO: finish docstring, make sure the purpose of this function is clear
+        This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
+        The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
+        This method returns a list of pseudoword matches, including all match and difference statistics.
+        Beware that this method always clears the sequence cache and all previously set filters.
+        TODO: more verbose docstring with example return values
         &#34;&#34;&#34;
-        if type(segmentset) != set:
-            segmentset = set(segmentset)
-        self.segmentset_filter = segmentset
-
-    def clear_segmentset_filter(self) -&gt; None:
+        pseudoword_matches = []
+        for input_sequence in input_sequences:
+            pseudoword_matches.extend(self.__generate_classic_inner(input_sequence, ncandidates, max_search_time, subsyllabic_segment_overlap_ratio, match_letter_length))
+        return pseudoword_matches
+        
+    def __generate_classic_inner(self, input_sequence: str, ncandidates: int, max_search_time: int, subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool):
         &#34;&#34;&#34;
-        Set the previously set segmentset filter.
-        &#34;&#34;&#34;
-        self.segmentset_filter = None
-        self.segmentset_subchain = None
-
-    def apply_segmentset_filter(self) -&gt; None:
-        &#34;&#34;&#34;
-        Apply the previously set segmentset filter.
-        &#34;&#34;&#34;
-        if self.segmentset_filter is None:
-            raise Exception(&#34;No segmentset filter has been set&#34;)
-        if self.frequency_subchain != None:
-            subchain = self.frequency_subchain
-        elif self.attribute_subchain != None:
-            subchain = self.attribute_subchain
-        else:
-            subchain = self.bigramchain
-        self.segmentset_subchain = subchain.segmentset_filter(
-            self.reference_sequence, self.segmentset_filter)
-
-    @_loaded_plugin_required_generator
-    def generate_simple(self, sequence: str) -&gt; Generator[str, None, None]:
-        &#34;&#34;&#34;
-        Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
-        Uses sensible defaults which do not have to be set by the user.
-        Only pseudowords with a large overlap with the input sequence are returned.
-        This method always clears the sequence cache.
+        Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
+        Should only be used by WuggyGenerator internally.
         &#34;&#34;&#34;
         self.__clear_sequence_cache()
-        if self.lookup(sequence) == None:
+        self.clear_attribute_filters()
+        self.clear_frequency_filter()
+        if self.lookup(input_sequence) == None:
             raise Exception(
                 f&#34;Word was not found in lexicon {self.current_language_plugin_name}&#34;)
-        self.set_reference_sequence(sequence)
+        self.set_reference_sequence(input_sequence)
         self.set_output_mode(&#34;plain&#34;)
         subchain = self.bigramchain
-        self.set_statistic(&#34;overlap_ratio&#34;)
-        self.set_statistic(&#34;lexicality&#34;)
-
-        for i in range(1, 10, 1):
-            # TODO: should we set the frequency filter automatically as done here? Probably most user friendly.
-            self.set_frequency_filter(2**i, 2**i)
+        self.set_all_statistics()
+        starttime=time()
+        pseudoword_matches = []
+        self.set_attribute_filter(&#34;segment_length&#34;)
+        frequency_exponent = 1
+        # TODO: concentric search is always enabled. Keep it this way or let users disable concentric search?
+        while True:
+            self.set_frequency_filter(2**frequency_exponent,2**frequency_exponent)
+            frequency_exponent+=1
             self.apply_frequency_filter()
+            self.__apply_attribute_filters()
             subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence)-1)
             subchain.set_startkeys(self.reference_sequence)
             for sequence in subchain.generate():
+                if (time()-starttime) &gt;= max_search_time:
+                    return pseudoword_matches
                 if self.plugin_module.output_plain(sequence) in self.sequence_cache:
-                    pass
-                else:
-                    self.current_sequence = sequence
-                    self.apply_statistics()
-                    # TODO: should we set the overlap ratio like here to generate &#39;close&#39; pseudowords by default?
-                    if (self.statistics[&#34;overlap_ratio&#34;] == Fraction(2, 3) and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
-                        # TODO: do we even need to add to cache if this function clears cache anyway?
-                        self.sequence_cache.append(
-                            self.plugin_module.output_plain(sequence))
-
-                        yield self.output_mode(sequence)
-
-    @_loaded_plugin_required_generator
+                    continue
+                self.current_sequence = sequence
+                self.apply_statistics()
+                if match_letter_length and self.difference_statistics[&#34;plain_length&#34;] != 0:
+                    continue
+                
+                if (self.statistics[&#34;overlap_ratio&#34;] == subsyllabic_segment_overlap_ratio and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
+                    self.sequence_cache.append(
+                        self.plugin_module.output_plain(sequence))
+                    match = {&#34;word&#34;: input_sequence, &#34;match&#34;: self.output_mode(sequence)}
+                    match.update({&#34;statistics&#34;: self.statistics, &#34;difference_statistics&#34;: self.difference_statistics})
+                    
+                    pseudoword_matches.append(match)
+                    if len(pseudoword_matches) &gt;= ncandidates:
+                        return pseudoword_matches
+                                
+    @_loaded_language_plugin_required_generator
     def generate(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
         &#34;&#34;&#34;
         Creates a generator which can be iterated to return generated pseudowords.
         If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
+        TODO: write examples of advanced Wuggy usage with this method
         &#34;&#34;&#34;
         if clear_cache == True:
             self.__clear_sequence_cache()
         if self.output_mode == None:
             self.set_output_mode(&#34;plain&#34;)
-        if len(self.attribute_filters) == 0 and self.frequency_subchain == None and self.segmentset_subchain == None:
+        if len(self.attribute_filters) == 0 and self.frequency_subchain == None:
             subchain = self.bigramchain
         if len(self.attribute_filters) != 0:
             if self.attribute_subchain == None:
@@ -967,9 +951,6 @@ By adhering to this interface, different techniques can be accessed in relativel
         if self.frequency_filter != None:
             self.apply_frequency_filter()
             subchain = self.frequency_subchain
-        if self.segmentset_filter != None:
-            self.apply_segmentset_filter()
-            subchain = self.segmentset_subchain
         if self.reference_sequence != None:
             subchain = subchain.clean(len(self.reference_sequence)-1)
             subchain.set_startkeys(self.reference_sequence)
@@ -991,6 +972,13 @@ By adhering to this interface, different techniques can be accessed in relativel
 <ul class="hlist">
 <li><a title="wuggy.generators.pseudowordgenerator.PseudowordGenerator" href="pseudowordgenerator.html#wuggy.generators.pseudowordgenerator.PseudowordGenerator">PseudowordGenerator</a></li>
 </ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.supported_language_plugins"><code class="name">var <span class="ident">supported_language_plugins</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_frequency_filter"><code class="name flex">
@@ -1012,31 +1000,6 @@ By adhering to this interface, different techniques can be accessed in relativel
     subchain = self.attribute_subchain if self.attribute_subchain != None else self.bigramchain
     self.frequency_subchain = subchain.frequency_filter(
         reference_sequence, lower, upper)</code></pre>
-</details>
-</dd>
-<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_segmentset_filter"><code class="name flex">
-<span>def <span class="ident">apply_segmentset_filter</span></span>(<span>self) ‑> NoneType</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Apply the previously set segmentset filter.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def apply_segmentset_filter(self) -&gt; None:
-    &#34;&#34;&#34;
-    Apply the previously set segmentset filter.
-    &#34;&#34;&#34;
-    if self.segmentset_filter is None:
-        raise Exception(&#34;No segmentset filter has been set&#34;)
-    if self.frequency_subchain != None:
-        subchain = self.frequency_subchain
-    elif self.attribute_subchain != None:
-        subchain = self.attribute_subchain
-    else:
-        subchain = self.bigramchain
-    self.segmentset_subchain = subchain.segmentset_filter(
-        self.reference_sequence, self.segmentset_filter)</code></pre>
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_statistics"><code class="name flex">
@@ -1102,23 +1065,6 @@ By adhering to this interface, different techniques can be accessed in relativel
     self.frequency_subchain = None</code></pre>
 </details>
 </dd>
-<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_segmentset_filter"><code class="name flex">
-<span>def <span class="ident">clear_segmentset_filter</span></span>(<span>self) ‑> NoneType</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Set the previously set segmentset filter.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def clear_segmentset_filter(self) -&gt; None:
-    &#34;&#34;&#34;
-    Set the previously set segmentset filter.
-    &#34;&#34;&#34;
-    self.segmentset_filter = None
-    self.segmentset_subchain = None</code></pre>
-</details>
-</dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics"><code class="name flex">
 <span>def <span class="ident">clear_statistics</span></span>(<span>self) ‑> NoneType</span>
 </code></dt>
@@ -1140,22 +1086,24 @@ By adhering to this interface, different techniques can be accessed in relativel
 </code></dt>
 <dd>
 <div class="desc"><p>Creates a generator which can be iterated to return generated pseudowords.
-If attributes such as "output_mode" are not set, sensible defaults are used.</p></div>
+If attributes such as "output_mode" are not set, sensible defaults are used.
+TODO: write examples of advanced Wuggy usage with this method</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">@_loaded_plugin_required_generator
+<pre><code class="python">@_loaded_language_plugin_required_generator
 def generate(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
     &#34;&#34;&#34;
     Creates a generator which can be iterated to return generated pseudowords.
     If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
+    TODO: write examples of advanced Wuggy usage with this method
     &#34;&#34;&#34;
     if clear_cache == True:
         self.__clear_sequence_cache()
     if self.output_mode == None:
         self.set_output_mode(&#34;plain&#34;)
-    if len(self.attribute_filters) == 0 and self.frequency_subchain == None and self.segmentset_subchain == None:
+    if len(self.attribute_filters) == 0 and self.frequency_subchain == None:
         subchain = self.bigramchain
     if len(self.attribute_filters) != 0:
         if self.attribute_subchain == None:
@@ -1164,9 +1112,6 @@ def generate(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, No
     if self.frequency_filter != None:
         self.apply_frequency_filter()
         subchain = self.frequency_subchain
-    if self.segmentset_filter != None:
-        self.apply_segmentset_filter()
-        subchain = self.segmentset_subchain
     if self.reference_sequence != None:
         subchain = subchain.clean(len(self.reference_sequence)-1)
         subchain.set_startkeys(self.reference_sequence)
@@ -1185,56 +1130,32 @@ def generate(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, No
             yield self.output_mode(sequence)</code></pre>
 </details>
 </dd>
-<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate_simple"><code class="name flex">
-<span>def <span class="ident">generate_simple</span></span>(<span>self, sequence: str) ‑> Generator[str, NoneType, NoneType]</span>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic"><code class="name flex">
+<span>def <span class="ident">generate_classic</span></span>(<span>self, input_sequences: [<class 'str'>], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: fractions.Fraction = Fraction(2, 3), match_letter_length: bool = True) ‑> [typing.Dict]</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
-Uses sensible defaults which do not have to be set by the user.
-Only pseudowords with a large overlap with the input sequence are returned.
-This method always clears the sequence cache.</p></div>
+<div class="desc"><p>This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
+The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
+This method returns a list of pseudoword matches, including all match and difference statistics.
+Beware that this method always clears the sequence cache and all previously set filters.
+TODO: more verbose docstring with example return values</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">@_loaded_plugin_required_generator
-def generate_simple(self, sequence: str) -&gt; Generator[str, None, None]:
+<pre><code class="python">@_loaded_language_plugin_required
+def generate_classic(self, input_sequences: [str], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: Fraction = Fraction(2,3), match_letter_length: bool = True) -&gt; [Dict]:
     &#34;&#34;&#34;
-    Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
-    Uses sensible defaults which do not have to be set by the user.
-    Only pseudowords with a large overlap with the input sequence are returned.
-    This method always clears the sequence cache.
+    This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
+    The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
+    This method returns a list of pseudoword matches, including all match and difference statistics.
+    Beware that this method always clears the sequence cache and all previously set filters.
+    TODO: more verbose docstring with example return values
     &#34;&#34;&#34;
-    self.__clear_sequence_cache()
-    if self.lookup(sequence) == None:
-        raise Exception(
-            f&#34;Word was not found in lexicon {self.current_language_plugin_name}&#34;)
-    self.set_reference_sequence(sequence)
-    self.set_output_mode(&#34;plain&#34;)
-    subchain = self.bigramchain
-    self.set_statistic(&#34;overlap_ratio&#34;)
-    self.set_statistic(&#34;lexicality&#34;)
-
-    for i in range(1, 10, 1):
-        # TODO: should we set the frequency filter automatically as done here? Probably most user friendly.
-        self.set_frequency_filter(2**i, 2**i)
-        self.apply_frequency_filter()
-        subchain = self.frequency_subchain
-        subchain = subchain.clean(len(self.reference_sequence)-1)
-        subchain.set_startkeys(self.reference_sequence)
-        for sequence in subchain.generate():
-            if self.plugin_module.output_plain(sequence) in self.sequence_cache:
-                pass
-            else:
-                self.current_sequence = sequence
-                self.apply_statistics()
-                # TODO: should we set the overlap ratio like here to generate &#39;close&#39; pseudowords by default?
-                if (self.statistics[&#34;overlap_ratio&#34;] == Fraction(2, 3) and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
-                    # TODO: do we even need to add to cache if this function clears cache anyway?
-                    self.sequence_cache.append(
-                        self.plugin_module.output_plain(sequence))
-
-                    yield self.output_mode(sequence)</code></pre>
+    pseudoword_matches = []
+    for input_sequence in input_sequences:
+        pseudoword_matches.extend(self.__generate_classic_inner(input_sequence, ncandidates, max_search_time, subsyllabic_segment_overlap_ratio, match_letter_length))
+    return pseudoword_matches</code></pre>
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies"><code class="name flex">
@@ -1436,7 +1357,7 @@ This is commonly used before generate() in order to set the reference word for w
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">@_loaded_plugin_required
+<pre><code class="python">@_loaded_language_plugin_required
 def set_reference_sequence(self, sequence: str) -&gt; None:
     &#34;&#34;&#34;
     Set the reference sequence.
@@ -1451,24 +1372,6 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
         function = eval(&#34;self.plugin_module.statistic_%s&#34; % (name))
         self.reference_statistics[name] = function(
             self, self.reference_sequence)</code></pre>
-</details>
-</dd>
-<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_segmentset_filter"><code class="name flex">
-<span>def <span class="ident">set_segmentset_filter</span></span>(<span>self, segmentset: set) ‑> NoneType</span>
-</code></dt>
-<dd>
-<div class="desc"><p>TODO: finish docstring, make sure the purpose of this function is clear</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def set_segmentset_filter(self, segmentset: set) -&gt; None:
-    &#34;&#34;&#34;
-    TODO: finish docstring, make sure the purpose of this function is clear
-    &#34;&#34;&#34;
-    if type(segmentset) != set:
-        segmentset = set(segmentset)
-    self.segmentset_filter = segmentset</code></pre>
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistic"><code class="name flex">
@@ -1539,14 +1442,12 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 <h4><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator" href="#wuggy.generators.wuggygenerator.WuggyGenerator">WuggyGenerator</a></code></h4>
 <ul class="">
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.apply_frequency_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.apply_frequency_filter">apply_frequency_filter</a></code></li>
-<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.apply_segmentset_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.apply_segmentset_filter">apply_segmentset_filter</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.apply_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.apply_statistics">apply_statistics</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_attribute_filters" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_attribute_filters">clear_attribute_filters</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_frequency_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_frequency_filter">clear_frequency_filter</a></code></li>
-<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_segmentset_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_segmentset_filter">clear_segmentset_filter</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics">clear_statistics</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.generate" href="#wuggy.generators.wuggygenerator.WuggyGenerator.generate">generate</a></code></li>
-<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.generate_simple" href="#wuggy.generators.wuggygenerator.WuggyGenerator.generate_simple">generate_simple</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic" href="#wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic">generate_classic</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies" href="#wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies">get_limit_frequencies</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes" href="#wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes">list_output_modes</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.load" href="#wuggy.generators.wuggygenerator.WuggyGenerator.load">load</a></code></li>
@@ -1557,9 +1458,9 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_frequency_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_frequency_filter">set_frequency_filter</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_output_mode" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_output_mode">set_output_mode</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_reference_sequence" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_reference_sequence">set_reference_sequence</a></code></li>
-<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_segmentset_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_segmentset_filter">set_segmentset_filter</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistic" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_statistic">set_statistic</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_statistics">set_statistics</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.supported_language_plugins" href="#wuggy.generators.wuggygenerator.WuggyGenerator.supported_language_plugins">supported_language_plugins</a></code></li>
 </ul>
 </li>
 </ul>

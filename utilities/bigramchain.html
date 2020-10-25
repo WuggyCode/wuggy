@@ -168,7 +168,6 @@ class BigramChain(defaultdict):
         &#34;&#34;&#34;
         Remove chains that can not be completed.
         &#34;&#34;&#34;
-        n = len(self)
         result = BigramChain(self.plugin_module)
         for key, nextkeys in self.items():
             for nextkey, frequency in nextkeys.items():
@@ -357,7 +356,6 @@ class BigramChain(defaultdict):
         &#34;&#34;&#34;
         Remove chains that can not be completed.
         &#34;&#34;&#34;
-        n = len(self)
         result = BigramChain(self.plugin_module)
         for key, nextkeys in self.items():
             for nextkey, frequency in nextkeys.items():
@@ -466,7 +464,6 @@ class BigramChain(defaultdict):
     &#34;&#34;&#34;
     Remove chains that can not be completed.
     &#34;&#34;&#34;
-    n = len(self)
     result = BigramChain(self.plugin_module)
     for key, nextkeys in self.items():
         for nextkey, frequency in nextkeys.items():

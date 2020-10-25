@@ -16,7 +16,6 @@ from ..plugins import orthographic_basque, orthographic_dutch, orthographic_engl
 from functools import wraps
 from urllib.request import urlopen
 
-
 def _loaded_plugin_required(func):
     """
     Decorator used for regular Wuggy methods to ensure that a valid language plugin is loaded before execution.
@@ -57,10 +56,8 @@ class WuggyGenerator(PseudowordGenerator):
         self.__language_plugin_repository_url = "https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/"
         self.attribute_subchain = None
         self.frequency_subchain = None
-        self.segmentset_subchain = None
         self.reference_sequence = None
         self.frequency_filter = None
-        self.segmentset_filter = None
         self.current_sequence = None
         self.output_mode = None
         self.supported_statistics = ()
@@ -386,46 +383,20 @@ class WuggyGenerator(PseudowordGenerator):
         self.frequency_subchain = subchain.frequency_filter(
             reference_sequence, lower, upper)
 
-    def set_segmentset_filter(self, segmentset: set) -> None:
-        """
-        TODO: finish docstring, make sure the purpose of this function is clear
-        """
-        if type(segmentset) != set:
-            segmentset = set(segmentset)
-        self.segmentset_filter = segmentset
-
-    def clear_segmentset_filter(self) -> None:
-        """
-        Set the previously set segmentset filter.
-        """
-        self.segmentset_filter = None
-        self.segmentset_subchain = None
-
-    def apply_segmentset_filter(self) -> None:
-        """
-        Apply the previously set segmentset filter.
-        """
-        if self.segmentset_filter is None:
-            raise Exception("No segmentset filter has been set")
-        if self.frequency_subchain != None:
-            subchain = self.frequency_subchain
-        elif self.attribute_subchain != None:
-            subchain = self.attribute_subchain
-        else:
-            subchain = self.bigramchain
-        self.segmentset_subchain = subchain.segmentset_filter(
-            self.reference_sequence, self.segmentset_filter)
-
     @_loaded_plugin_required_generator
-    def generate_simple(self, sequence: str) -> Generator[str, None, None]:
+    def generate_classic(self, sequence: [str], options) -> [str]:
         # TODO: classic, copy UI possibilities
         """
+        This is the classic method to generate pseudowords using Wuggy.
+        The defaults for this method 
         Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
         Uses sensible defaults which do not have to be set by the user.
         Only pseudowords with a large overlap with the input sequence are returned.
         This method always clears the sequence cache.
         """
         self.__clear_sequence_cache()
+        self.clear_attribute_filters()
+        self.clear_frequency_filter()
         if self.lookup(sequence) == None:
             raise Exception(
                 f"Word was not found in lexicon {self.current_language_plugin_name}")
@@ -466,7 +437,7 @@ class WuggyGenerator(PseudowordGenerator):
             self.__clear_sequence_cache()
         if self.output_mode == None:
             self.set_output_mode("plain")
-        if len(self.attribute_filters) == 0 and self.frequency_subchain == None and self.segmentset_subchain == None:
+        if len(self.attribute_filters) == 0 and self.frequency_subchain == None:
             subchain = self.bigramchain
         if len(self.attribute_filters) != 0:
             if self.attribute_subchain == None:
@@ -475,9 +446,6 @@ class WuggyGenerator(PseudowordGenerator):
         if self.frequency_filter != None:
             self.apply_frequency_filter()
             subchain = self.frequency_subchain
-        if self.segmentset_filter != None:
-            self.apply_segmentset_filter()
-            subchain = self.segmentset_subchain
         if self.reference_sequence != None:
             subchain = subchain.clean(len(self.reference_sequence)-1)
             subchain.set_startkeys(self.reference_sequence)

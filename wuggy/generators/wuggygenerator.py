@@ -46,13 +46,14 @@ def _loaded_plugin_required_generator(func):
 
 
 class WuggyGenerator(PseudowordGenerator):
+    supported_language_plugins = {"orthographic_dutch": orthographic_dutch, "orthographic_english": orthographic_english, "orthographic_french": orthographic_french, "orthographic_german": orthographic_german, "orthographic_italian": orthographic_italian, "orthographic_polish": orthographic_polish, "orthographic_serbian_cyrillic": orthographic_serbian_cyrillic,
+                                  "orthographic_serbian_latin": orthographic_serbian_latin, "orthographic_spanish": orthographic_spanish, "orthographic_vietnamese": orthographic_vietnamese, "phonetic_english_celex": phonetic_english_celex, "phonetic_english_cmu": phonetic_english_cmu, "phonetic_french": phonetic_french, "phonetic_italian": phonetic_italian}
+
     def __init__(self):
         PseudowordGenerator.__init__(self)
         self.data_path = os.path.join(os.path.dirname(__file__), "..", "data")
         self.bigramchain = None
         self.bigramchains = {}
-        self.supported_language_plugins = {"orthographic_dutch": orthographic_dutch, "orthographic_english": orthographic_english, "orthographic_french": orthographic_french, "orthographic_german": orthographic_german, "orthographic_italian": orthographic_italian, "orthographic_polish": orthographic_polish, "orthographic_serbian_cyrillic": orthographic_serbian_cyrillic,
-                                           "orthographic_serbian_latin": orthographic_serbian_latin, "orthographic_spanish": orthographic_spanish, "orthographic_vietnamese": orthographic_vietnamese, "phonetic_english_celex": phonetic_english_celex, "phonetic_english_cmu": phonetic_english_cmu, "phonetic_french": phonetic_french, "phonetic_italian": phonetic_italian}
         self.__language_plugin_repository_url = "https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/"
         self.attribute_subchain = None
         self.frequency_subchain = None
@@ -102,6 +103,7 @@ class WuggyGenerator(PseudowordGenerator):
         Downloads and saves given language plugin to local storage from the corresponding file repository.
         """
         # TODO: should this become a prompt? Currently auto-downloads.
+        # TODO: ensure this works if you use Wuggy as a module, there are issues currently.
         warnings.warn(
             f"The language plugin {language_plugin_name} was not found. Wuggy is currently downloading this plugin for you...")
         raw_file = urlopen(
@@ -416,6 +418,7 @@ class WuggyGenerator(PseudowordGenerator):
 
     @_loaded_plugin_required_generator
     def generate_simple(self, sequence: str) -> Generator[str, None, None]:
+        # TODO: classic, copy UI possibilities
         """
         Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
         Uses sensible defaults which do not have to be set by the user.
@@ -431,7 +434,7 @@ class WuggyGenerator(PseudowordGenerator):
         subchain = self.bigramchain
         self.set_statistic("overlap_ratio")
         self.set_statistic("lexicality")
-
+        # TODO: all stats on except deviation
         for i in range(1, 10, 1):
             # TODO: should we set the frequency filter automatically as done here? Probably most user friendly.
             self.set_frequency_filter(2**i, 2**i)

@@ -4,7 +4,6 @@ from collections import namedtuple
 
 Sequence=namedtuple('Sequence',['representation','frequency'])
 
-# decorators
 def compute_difference(gen_stat, ref_stat):
     if type(gen_stat) in (tuple,list):
         return [gen_stat[i]-ref_stat[i] for i in range(min(len(gen_stat),len(ref_stat)))]

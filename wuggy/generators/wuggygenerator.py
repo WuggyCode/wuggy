@@ -11,12 +11,13 @@ from .pseudowordgenerator import PseudowordGenerator
 from math import floor
 from enum import Enum
 import warnings
-from typing import Optional, Callable, Generator, Union, Any
+from typing import Optional, Callable, Generator, Union, Any, Dict
 from ..plugins import orthographic_basque, orthographic_dutch, orthographic_english, orthographic_french, orthographic_german, orthographic_italian, orthographic_polish, orthographic_serbian_cyrillic, orthographic_serbian_latin, orthographic_spanish, orthographic_vietnamese, phonetic_english_celex, phonetic_english_cmu, phonetic_french, phonetic_italian
 from functools import wraps
 from urllib.request import urlopen
+from time import time
 
-def _loaded_plugin_required(func):
+def _loaded_language_plugin_required(func):
     """
     Decorator used for regular Wuggy methods to ensure that a valid language plugin is loaded before execution.
     """
@@ -25,11 +26,11 @@ def _loaded_plugin_required(func):
         if not hasattr(args[0], 'plugin_module'):
             raise Exception(
                 "This function cannot be called if no language plugin is loaded!")
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
     return wrapper
 
 
-def _loaded_plugin_required_generator(func):
+def _loaded_language_plugin_required_generator(func):
     """
     Decorator used for Wuggy generator methods to ensure that a valid language plugin is loaded before execution.
     """
@@ -42,7 +43,6 @@ def _loaded_plugin_required_generator(func):
         for val in gen:
             yield val
     return wrapper
-
 
 class WuggyGenerator(PseudowordGenerator):
     supported_language_plugins = {"orthographic_dutch": orthographic_dutch, "orthographic_english": orthographic_english, "orthographic_french": orthographic_french, "orthographic_german": orthographic_german, "orthographic_italian": orthographic_italian, "orthographic_polish": orthographic_polish, "orthographic_serbian_cyrillic": orthographic_serbian_cyrillic,
@@ -202,7 +202,7 @@ class WuggyGenerator(PseudowordGenerator):
         """
         return self.plugin_module.default_fields
 
-    @_loaded_plugin_required
+    @_loaded_language_plugin_required
     def set_reference_sequence(self, sequence: str) -> None:
         """
         Set the reference sequence.
@@ -383,55 +383,74 @@ class WuggyGenerator(PseudowordGenerator):
         self.frequency_subchain = subchain.frequency_filter(
             reference_sequence, lower, upper)
 
-    @_loaded_plugin_required_generator
-    def generate_classic(self, sequence: [str], options) -> [str]:
-        # TODO: classic, copy UI possibilities
+    @_loaded_language_plugin_required
+    def generate_classic(self, input_sequences: [str], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: Fraction = Fraction(2,3), match_letter_length: bool = True) -> [Dict]:
         """
-        This is the classic method to generate pseudowords using Wuggy.
-        The defaults for this method 
-        Creates a generator returning generated pseudowords, can be called immediately after loading a language plugin.
-        Uses sensible defaults which do not have to be set by the user.
-        Only pseudowords with a large overlap with the input sequence are returned.
-        This method always clears the sequence cache.
+        This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
+        The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
+        This method returns a list of pseudoword matches, including all match and difference statistics.
+        Beware that this method always clears the sequence cache and all previously set filters.
+        TODO: more verbose docstring with example return values
+        """
+        pseudoword_matches = []
+        for input_sequence in input_sequences:
+            pseudoword_matches.extend(self.__generate_classic_inner(input_sequence, ncandidates, max_search_time, subsyllabic_segment_overlap_ratio, match_letter_length))
+        return pseudoword_matches
+        
+    def __generate_classic_inner(self, input_sequence: str, ncandidates: int, max_search_time: int, subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool):
+        """
+        Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
+        Should only be used by WuggyGenerator internally.
         """
         self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
-        if self.lookup(sequence) == None:
+        if self.lookup(input_sequence) == None:
             raise Exception(
                 f"Word was not found in lexicon {self.current_language_plugin_name}")
-        self.set_reference_sequence(sequence)
+        self.set_reference_sequence(input_sequence)
         self.set_output_mode("plain")
         subchain = self.bigramchain
-        self.set_statistic("overlap_ratio")
-        self.set_statistic("lexicality")
-        # TODO: all stats on except deviation
-        for i in range(1, 10, 1):
-            # TODO: should we set the frequency filter automatically as done here? Probably most user friendly.
-            self.set_frequency_filter(2**i, 2**i)
+        self.set_all_statistics()
+        starttime=time()
+        pseudoword_matches = []
+        self.set_attribute_filter("segment_length")
+        frequency_exponent = 1
+        # TODO: concentric search is always enabled. Keep it this way or let users disable concentric search?
+        while True:
+            self.set_frequency_filter(2**frequency_exponent,2**frequency_exponent)
+            frequency_exponent+=1
             self.apply_frequency_filter()
+            self.__apply_attribute_filters()
             subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence)-1)
             subchain.set_startkeys(self.reference_sequence)
             for sequence in subchain.generate():
+                if (time()-starttime) >= max_search_time:
+                    return pseudoword_matches
                 if self.plugin_module.output_plain(sequence) in self.sequence_cache:
-                    pass
-                else:
-                    self.current_sequence = sequence
-                    self.apply_statistics()
-                    # TODO: should we set the overlap ratio like here to generate 'close' pseudowords by default?
-                    if (self.statistics["overlap_ratio"] == Fraction(2, 3) and self.statistics["lexicality"] == "N"):
-                        # TODO: do we even need to add to cache if this function clears cache anyway?
-                        self.sequence_cache.append(
-                            self.plugin_module.output_plain(sequence))
-
-                        yield self.output_mode(sequence)
-
-    @_loaded_plugin_required_generator
+                    continue
+                self.current_sequence = sequence
+                self.apply_statistics()
+                if match_letter_length and self.difference_statistics["plain_length"] != 0:
+                    continue
+                
+                if (self.statistics["overlap_ratio"] == subsyllabic_segment_overlap_ratio and self.statistics["lexicality"] == "N"):
+                    self.sequence_cache.append(
+                        self.plugin_module.output_plain(sequence))
+                    match = {"word": input_sequence, "match": self.output_mode(sequence)}
+                    match.update({"statistics": self.statistics, "difference_statistics": self.difference_statistics})
+                    
+                    pseudoword_matches.append(match)
+                    if len(pseudoword_matches) >= ncandidates:
+                        return pseudoword_matches
+                                
+    @_loaded_language_plugin_required_generator
     def generate(self, clear_cache: bool = True) -> Union[Generator[str, None, None], Generator[tuple, None, None]]:
         """
         Creates a generator which can be iterated to return generated pseudowords.
         If attributes such as \"output_mode\" are not set, sensible defaults are used.
+        TODO: write examples of advanced Wuggy usage with this method
         """
         if clear_cache == True:
             self.__clear_sequence_cache()

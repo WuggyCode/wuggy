@@ -13,7 +13,7 @@ separator = u'\t'
 subseparator = u'|'
 default_fields = ['sequence_length']
 language = None
-# TODO: already have the language files prepared
+
 Segment = namedtuple('Segment', ('sequence_length',
                                  'segment_length', 'letters'))
 SegmentH = namedtuple('Segment', ('sequence_length',

@@ -81,7 +81,6 @@ class WuggyGenerator():
         try:
             plugin_module = importlib.import_module(
                 f".plugins.language_data.{language_plugin_name}.{language_plugin_name}", "wuggy")
-            plugin_module.__name__ = plugin_module.__name__.rsplit('.', 1)[-1]
         except:
             raise ValueError(
                 f"This language is not supported by Wuggy at this moment. If this is a local plugin, .... TODO: change this string")

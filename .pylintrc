@@ -1,2 +1,2 @@
 [MESSAGES CONTROL]
-disable=relative-beyond-top-level,missing-module-docstring
+disable=relative-beyond-top-level,missing-module-docstring,line-too-long

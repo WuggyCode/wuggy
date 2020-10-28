@@ -1,20 +1,17 @@
 from collections import namedtuple
 from fractions import Fraction
-import os
-import sys
+
 # Pylint may report no-member error due to C extension
 import Levenshtein
-from collections import namedtuple
-import inspect
 
 
 def compute_difference(gen_stat, ref_stat):
     if type(gen_stat) in (tuple, list):
-        return [gen_stat[i]-ref_stat[i] for i in range(min(len(gen_stat), len(ref_stat)))]
-    elif type(gen_stat) == dict:
-        return dict((i, gen_stat[i]-ref_stat[i]) for i in range(len(gen_stat)))
+        return [gen_stat[i] - ref_stat[i] for i in range(min(len(gen_stat), len(ref_stat)))]
+    elif isinstance(gen_stat, dict):
+        return dict((i, gen_stat[i] - ref_stat[i]) for i in range(len(gen_stat)))
     elif type(gen_stat) in [float, int]:
-        return gen_stat-ref_stat
+        return gen_stat - ref_stat
 
 
 def compute_match(gen_stat, ref_stat):
@@ -101,21 +98,27 @@ class BaseLanguagePlugin():
         return u''.join([segment.letters for segment in sequence[1:-1]])
 
     def output_syllabic(self, sequence):
-        return '-'.join(u''.join(segment.letters for segment in sequence[i-3:i]) for i in range(4, len(sequence), 3))
+        return '-'.join(
+            u''.join(segment.letters for segment in sequence[i - 3: i])
+            for i in range(4, len(sequence),
+                           3))
 
     def output_segmental(self, sequence):
         return u':'.join([segment.letters for segment in sequence[1:-1]])
 
     def statistic_overlap(self, generator, generated_sequence):
-        return sum([generator.reference_sequence[i] == generated_sequence[i] for i in range(1, len(generator.reference_sequence)-1)])
+        return sum([generator.reference_sequence[i] == generated_sequence[i]
+                    for i in range(1, len(generator.reference_sequence) - 1)])
 
     def statistic_overlap_ratio(self, generator, generated_sequence):
-        return Fraction(self.statistic_overlap(generator, generated_sequence), len(generator.reference_sequence)-2)
+        return Fraction(
+            self.statistic_overlap(generator, generated_sequence),
+            len(generator.reference_sequence) - 2)
 
     @match
     @difference
     def statistic_plain_length(self, generator, generated_sequence):
-        return len(self.output_plain(generated_sequence))-2
+        return len(self.output_plain(generated_sequence)) - 2
 
     @match
     def statistic_lexicality(self, generator, generated_sequence):
@@ -132,7 +135,7 @@ class BaseLanguagePlugin():
     def _old(self, source, lexicon, n):
         distances = (distance for neighbor,
                      distance in self._neighbors(source, lexicon, n))
-        return sum(distances)/float(n)
+        return sum(distances) / float(n)
 
     def _neighbors(self, source, lexicon, n):
         neighbors = []
@@ -144,7 +147,7 @@ class BaseLanguagePlugin():
     def _neighbors_at_distance(self, source, lexicon, distance):
         neighbors = []
         for target in lexicon:
-            if abs(len(target)-len(source)) > distance:
+            if abs(len(target) - len(source)) > distance:
                 pass
             elif Levenshtein.distance(source, target) == 1:
                 neighbors.append(target)
@@ -158,7 +161,10 @@ class BaseLanguagePlugin():
     @match
     @difference
     def statistic_ned1(self, generator, generated_sequence):
-        return len(self._neighbors_at_distance(self.output_plain(generated_sequence), generator.neighbor_lexicon, 1))
+        return len(
+            self._neighbors_at_distance(
+                self.output_plain(generated_sequence),
+                generator.neighbor_lexicon, 1))
 
     @difference
     def statistic_transition_frequencies(self, generator, generated_sequence):

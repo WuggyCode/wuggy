@@ -1,23 +1,18 @@
-import os
-import sys
-import random
 import codecs
-from fractions import Fraction
-from collections import defaultdict, namedtuple
-import pickle
-import threading
-from ..utilities.bigramchain import BigramChain
-from math import floor
-from enum import Enum
-import warnings
-from typing import Optional, Callable, Generator, Union, Any, Dict
-from functools import wraps
-from urllib.request import urlopen
-from time import time
 import importlib
 import inspect
-from ..plugins.baselanguageplugin import BaseLanguagePlugin
+import os
+from collections import defaultdict, namedtuple
+from fractions import Fraction
+from functools import wraps
 from pathlib import Path
+from time import time
+from typing import Dict, Generator, Optional, Union
+from urllib.request import urlopen
+from warnings import warn
+
+from ..plugins.baselanguageplugin import BaseLanguagePlugin
+from ..utilities.bigramchain import BigramChain
 
 
 def _loaded_language_plugin_required(func):
@@ -52,8 +47,21 @@ class WuggyGenerator():
     def __init__(self):
         self.bigramchain = None
         self.bigramchains = {}
-        self.supported_official_language_plugins = ["orthographic_dutch", "orthographic_english", "orthographic_french", "orthographic_german", "orthographic_italian", "orthographic_polish", "orthographic_serbian_cyrillic"
-                                                    "orthographic_serbian_latin", "orthographic_spanish" "orthographic_vietnamese", "phonetic_english_celex", "phonetic_english_cmu", "phonetic_french", "phonetic_italian"]
+        self.supported_official_language_plugin_names = [
+            "orthographic_dutch",
+            "orthographic_english",
+            "orthographic_french",
+            "orthographic_german",
+            "orthographic_italian",
+            "orthographic_polish",
+            "orthographic_serbian_cyrillic",
+            "orthographic_serbian_latin",
+            "orthographic_spanish",
+            "orthographic_vietnamese",
+            "phonetic_english_celex",
+            "phonetic_english_cmu",
+            "phonetic_french",
+            "phonetic_italian"]
         self.__official_language_plugin_repository_url = "https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/"
         self.attribute_subchain = None
         self.frequency_subchain = None
@@ -75,7 +83,8 @@ class WuggyGenerator():
         self.match_statistics = {}
         self.lookup_lexicon = {}
 
-    def load(self, language_plugin_name: str, local_language_plugin: BaseLanguagePlugin = None) -> None:
+    def load(self, language_plugin_name: str,
+             local_language_plugin: BaseLanguagePlugin = None) -> None:
         """
         Loads in a language plugin, if available, and stores the corresponding bigramchains.
         """
@@ -86,7 +95,7 @@ class WuggyGenerator():
             language_plugin = local_language_plugin
 
         if local_language_plugin is None:
-            if language_plugin_name not in self.supported_official_language_plugins:
+            if language_plugin_name not in self.supported_official_language_plugin_names:
                 raise ValueError(
                     f"This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin")
             self.language_plugin_name = language_plugin_name
@@ -101,7 +110,8 @@ class WuggyGenerator():
                 self.__download_language_plugin(
                     language_plugin_name, self.language_plugin_data_path)
             language_plugin = importlib.import_module(
-                f".plugins.language_data.{language_plugin_name}.{language_plugin_name}", "wuggy").LanguagePlugin()
+                f".plugins.language_data.{language_plugin_name}.{language_plugin_name}",
+                "wuggy").LanguagePlugin()
 
         if language_plugin_name not in self.bigramchains:
             default_data_path = os.path.join(
@@ -120,7 +130,7 @@ class WuggyGenerator():
         """
         # TODO: should this become a prompt? Currently auto-downloads.
         # TODO: ensure this works if you use Wuggy as a module, there are issues currently.
-        warnings.warn(
+        warn(
             f"The official language plugin {language_plugin_name} was not found in local storage. Wuggy is currently downloading this plugin for you...")
         py_file_name = f"{language_plugin_name}.py"
         py_file = urlopen(
@@ -133,6 +143,7 @@ class WuggyGenerator():
         for line in py_file:
             file.write(line.decode("utf-8"))
         data_file_name = f"{language_plugin_name}.txt"
+        # TODO: throw error when fetch fails
         data_file = urlopen(
             f"{self.__official_language_plugin_repository_url}/{language_plugin_name}/{data_file_name}")
         file = open(f'{path_to_save}/{data_file_name}',
@@ -147,7 +158,7 @@ class WuggyGenerator():
         This deactivates and garbage collects any previously activated language plugin.
         Should only be called internally, do not call on your own.
         """
-        if type(name) == type(codecs):
+        if isinstance(name, type(codecs)):
             name = name.__name__
         self.bigramchain = self.bigramchains[name]
         self.language_plugin = self.bigramchain.language_plugin
@@ -166,7 +177,8 @@ class WuggyGenerator():
         """
         cutoff = 0
         data_file = codecs.open(
-            "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_word_lexicon), 'r', encoding="utf-8")
+            "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_word_lexicon),
+            'r', encoding="utf-8")
         self.word_lexicon = defaultdict(list)
         lines = data_file.readlines()
         for line in lines:
@@ -184,7 +196,11 @@ class WuggyGenerator():
         """
         cutoff = 0
         data_file = codecs.open(
-            "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_neighbor_lexicon), 'r', encoding="utf-8")
+            "%s/%s" %
+            (self.language_plugin_data_path,
+             self.language_plugin.default_neighbor_lexicon),
+            'r',
+            encoding="utf-8")
         self.neighbor_lexicon = []
         lines = data_file.readlines()
         for line in lines:
@@ -201,9 +217,13 @@ class WuggyGenerator():
         This is currently used internally by __activate only, do not call on your own.
         """
         self.lookup_lexicon = {}
-        if data_file == None:
+        if data_file is None:
             data_file = codecs.open(
-                "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_lookup_lexicon), 'r', encoding="utf-8")
+                "%s/%s" %
+                (self.language_plugin_data_path,
+                 self.language_plugin.default_lookup_lexicon),
+                'r',
+                encoding="utf-8")
         lines = data_file.readlines()
         for line in lines:
             fields = line.strip().split(self.language_plugin.separator)
@@ -254,16 +274,18 @@ class WuggyGenerator():
         limits = []
         if tuple(fields) not in self.bigramchain.limit_frequencies:
             self.bigramchain.build_limit_frequencies(fields)
-        for i in range(0, len(self.reference_sequence)-1):
+        for i in range(0, len(self.reference_sequence) - 1):
             subkey_a = (i, tuple(
                 [self.reference_sequence[i].__getattribute__(field) for field in fields]))
-            subkey_b = (
-                i+1, tuple([self.reference_sequence[i+1].__getattribute__(field) for field in fields]))
+            subkey_b = (i + 1,
+                        tuple(
+                            [self.reference_sequence[i + 1].__getattribute__(field)
+                             for field in fields]))
             subkey = (subkey_a, subkey_b)
             try:
                 limits.append(
                     self.bigramchain.limit_frequencies[tuple(fields)][subkey])
-            except:
+            except BaseException:
                 limits.append([{max: 0, min: 0}])
         return limits
 
@@ -305,7 +327,7 @@ class WuggyGenerator():
         """
         Apply all statistics which were set beforehand.
         """
-        if sequence == None:
+        if sequence is None:
             sequence = self.current_sequence
         for name in self.statistics:
             function = eval("self.language_plugin.statistic_%s" % (name))
@@ -379,7 +401,7 @@ class WuggyGenerator():
         This is currently used by generate() internally, do not call on your own.
         """
         for attribute, reference_sequence in self.attribute_filters.items():
-            subchain = self.attribute_subchain if self.attribute_subchain != None else self.bigramchain
+            subchain = self.attribute_subchain if self.attribute_subchain is not None else self.bigramchain
             self.attribute_subchain = subchain.attribute_filter(
                 reference_sequence, attribute)
 
@@ -410,12 +432,15 @@ class WuggyGenerator():
         if self.frequency_filter is None:
             raise Exception("No frequency filter was set")
         reference_sequence, lower, upper = self.frequency_filter
-        subchain = self.attribute_subchain if self.attribute_subchain != None else self.bigramchain
+        subchain = self.attribute_subchain if self.attribute_subchain is not None else self.bigramchain
         self.frequency_subchain = subchain.frequency_filter(
             reference_sequence, lower, upper)
 
     @_loaded_language_plugin_required
-    def generate_classic(self, input_sequences: [str], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3), match_letter_length: bool = True) -> [Dict]:
+    def generate_classic(self, input_sequences: [str],
+                         ncandidates: int = 10, max_search_time: int = 10,
+                         subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
+                         match_letter_length: bool = True) -> [Dict]:
         """
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
@@ -425,11 +450,18 @@ class WuggyGenerator():
         """
         pseudoword_matches = []
         for input_sequence in input_sequences:
-            pseudoword_matches.extend(self.__generate_classic_inner(
-                input_sequence, ncandidates, max_search_time, subsyllabic_segment_overlap_ratio, match_letter_length))
+            pseudoword_matches.extend(
+                self.__generate_classic_inner(
+                    input_sequence,
+                    ncandidates,
+                    max_search_time,
+                    subsyllabic_segment_overlap_ratio,
+                    match_letter_length))
         return pseudoword_matches
 
-    def __generate_classic_inner(self, input_sequence: str, ncandidates: int, max_search_time: int, subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool):
+    def __generate_classic_inner(
+            self, input_sequence: str, ncandidates: int, max_search_time: int,
+            subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool):
         """
         Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
         Should only be used by WuggyGenerator internally.
@@ -437,7 +469,7 @@ class WuggyGenerator():
         self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
-        if self.lookup(input_sequence) == None:
+        if self.lookup(input_sequence) is None:
             raise Exception(
                 f"Word was not found in lexicon {self.current_language_plugin_name}")
         self.set_reference_sequence(input_sequence)
@@ -448,7 +480,8 @@ class WuggyGenerator():
         pseudoword_matches = []
         self.set_attribute_filter("segment_length")
         frequency_exponent = 1
-        # TODO: concentric search is always enabled. Keep it this way or let users disable concentric search?
+        # TODO: concentric search is always enabled. Keep it this way or let users
+        # disable concentric search?
         while True:
             self.set_frequency_filter(
                 2**frequency_exponent, 2**frequency_exponent)
@@ -456,10 +489,10 @@ class WuggyGenerator():
             self.apply_frequency_filter()
             self.__apply_attribute_filters()
             subchain = self.frequency_subchain
-            subchain = subchain.clean(len(self.reference_sequence)-1)
+            subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
             for sequence in subchain.generate():
-                if (time()-starttime) >= max_search_time:
+                if (time() - starttime) >= max_search_time:
                     return pseudoword_matches
                 if self.language_plugin.output_plain(sequence) in self.sequence_cache:
                     continue
@@ -468,7 +501,8 @@ class WuggyGenerator():
                 if match_letter_length and self.difference_statistics["plain_length"] != 0:
                     continue
 
-                if (self.statistics["overlap_ratio"] == subsyllabic_segment_overlap_ratio and self.statistics["lexicality"] == "N"):
+                if (self.statistics["overlap_ratio"] ==
+                        subsyllabic_segment_overlap_ratio and self.statistics["lexicality"] == "N"):
                     self.sequence_cache.append(
                         self.language_plugin.output_plain(sequence))
                     match = {"word": input_sequence,
@@ -481,7 +515,8 @@ class WuggyGenerator():
                         return pseudoword_matches
 
     @_loaded_language_plugin_required_generator
-    def generate(self, clear_cache: bool = True) -> Union[Generator[str, None, None], Generator[tuple, None, None]]:
+    def generate(
+            self, clear_cache: bool = True) -> Union[Generator[str, None, None], Generator[tuple, None, None]]:
         """
         Creates a generator which can be iterated to return generated pseudowords.
         If attributes such as \"output_mode\" are not set, sensible defaults are used.
@@ -489,22 +524,22 @@ class WuggyGenerator():
         """
         if clear_cache == True:
             self.__clear_sequence_cache()
-        if self.output_mode == None:
+        if self.output_mode is None:
             self.set_output_mode("plain")
-        if len(self.attribute_filters) == 0 and self.frequency_subchain == None:
+        if len(self.attribute_filters) == 0 and self.frequency_subchain is None:
             subchain = self.bigramchain
         if len(self.attribute_filters) != 0:
-            if self.attribute_subchain == None:
+            if self.attribute_subchain is None:
                 self.__apply_attribute_filters()
             subchain = self.attribute_subchain
-        if self.frequency_filter != None:
+        if self.frequency_filter is not None:
             self.apply_frequency_filter()
             subchain = self.frequency_subchain
-        if self.reference_sequence != None:
-            subchain = subchain.clean(len(self.reference_sequence)-1)
+        if self.reference_sequence is not None:
+            subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
         else:
-            warnings.warn(
+            warn(
                 "No reference sequence was set. Ignore this message if this was intentional.")
             subchain.set_startkeys()
         for sequence in subchain.generate():

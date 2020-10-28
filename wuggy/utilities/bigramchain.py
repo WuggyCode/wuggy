@@ -10,11 +10,11 @@ class BigramChain(defaultdict):
     A dictionary storing the next possible value, given a list of input sequences.
     """
 
-    def __init__(self, plugin_module, data=None, encoding='utf-8', size=100, cutoff=1, token=False):
+    def __init__(self, language_plugin, data=None, encoding='utf-8', size=100, cutoff=1, token=False):
         defaultdict.__init__(self, dict)
-        self.plugin_module = plugin_module
+        self.language_plugin = language_plugin
         try:
-            self.hidden_sequence = self.plugin_module.hidden_sequence
+            self.hidden_sequence = self.language_plugin.hidden_sequence
         except AttributeError:
             self.hidden_sequence = False
         if data != None:
@@ -25,11 +25,11 @@ class BigramChain(defaultdict):
     def load(self, datafile, size=100, cutoff=1, token=False):
         lines = datafile.readlines()
         for i, line in enumerate(lines):
-            fields = line.strip('\n\t').split(self.plugin_module.separator)
+            fields = line.strip('\n\t').split(self.language_plugin.separator)
             reference, input_sequence, frequency = fields
             frequency = float(frequency) if token == True else 1
             frequency = 1
-            sequence = (self.plugin_module.transform(
+            sequence = (self.language_plugin.transform(
                 input_sequence, frequency))
             n = len(sequence.representation)
             if frequency >= cutoff and random.randint(1, 100) <= size:
@@ -46,7 +46,7 @@ class BigramChain(defaultdict):
 
     def set_startkeys(self, reference_sequence=None, fields=None):
         if fields == None:
-            fields = self.plugin_module.default_fields
+            fields = self.language_plugin.default_fields
         if reference_sequence == None:
             self.startkeys = dict([(key, 0)
                                    for key in self.keys() if key.position == 0])
@@ -86,7 +86,7 @@ class BigramChain(defaultdict):
         self.limit_frequencies[tuple(fields)] = limits
 
     def frequency_filter(self, reference_sequence, lower, upper, kind='dev'):
-        result = BigramChain(self.plugin_module)
+        result = BigramChain(self.language_plugin)
         frequencies = self.get_frequencies(reference_sequence)
         for key, nextkeys in self.items():
             try:
@@ -108,7 +108,7 @@ class BigramChain(defaultdict):
 
     def segmentset_filter(self, reference_sequence, segmentset):
         segmentset = segmentset.union(set(('^', '$')))
-        result = BigramChain(self.plugin_module)
+        result = BigramChain(self.language_plugin)
         for key, nextkeys in self.items():
             if key.value.letters in segmentset:
                 for nextkey, frequency in nextkeys.items():
@@ -119,8 +119,8 @@ class BigramChain(defaultdict):
         return result
 
     def attribute_filter(self, reference_sequence, attribute):
-        result = BigramChain(self.plugin_module)
-        if type(reference_sequence[0]) == self.plugin_module.Segment:
+        result = BigramChain(self.language_plugin)
+        if type(reference_sequence[0]) == self.language_plugin.Segment:
             for key, nextkeys in self.items():
                 try:
                     if key.value.__getattribute__(attribute) == reference_sequence[key.position].__getattribute__(attribute):
@@ -140,7 +140,7 @@ class BigramChain(defaultdict):
         """
         Remove chains that can not be completed.
         """
-        result = BigramChain(self.plugin_module)
+        result = BigramChain(self.language_plugin)
         for key, nextkeys in self.items():
             for nextkey, frequency in nextkeys.items():
                 if nextkey in self or nextkey.position == maxpos:

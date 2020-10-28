@@ -15,7 +15,8 @@ from functools import wraps
 from urllib.request import urlopen
 from time import time
 import importlib
-import wuggy.plugins.language_data.orthographic_english.orthographic_english
+import inspect
+from ..plugins.baselanguageplugin import BaseLanguagePlugin
 
 
 def _loaded_language_plugin_required(func):
@@ -24,7 +25,7 @@ def _loaded_language_plugin_required(func):
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if not hasattr(args[0], 'plugin_module'):
+        if not hasattr(args[0], 'language_plugin'):
             raise Exception(
                 "This function cannot be called if no language plugin is loaded!")
         return func(*args, **kwargs)
@@ -37,7 +38,7 @@ def _loaded_language_plugin_required_generator(func):
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
-        if not hasattr(args[0], 'plugin_module'):
+        if not hasattr(args[0], 'language_plugin'):
             raise Exception(
                 "The generator cannot be iterated if no language plugin is loaded!")
         gen = func(*args, **kwargs)
@@ -48,10 +49,10 @@ def _loaded_language_plugin_required_generator(func):
 
 class WuggyGenerator():
     def __init__(self):
-        self.data_path = os.path.join(os.path.dirname(
-            __file__), "..", "plugins/language_data")
         self.bigramchain = None
         self.bigramchains = {}
+        self.supported_official_language_plugins = ["orthographic_dutch", "orthographic_english", "orthographic_french", "orthographic_german", "orthographic_italian", "orthographic_polish", "orthographic_serbian_cyrillic"
+                                                    "orthographic_serbian_latin", "orthographic_spanish" "orthographic_vietnamese", "phonetic_english_celex", "phonetic_english_cmu", "phonetic_french", "phonetic_italian"]
         self.__language_plugin_repository_url = "https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/"
         self.attribute_subchain = None
         self.frequency_subchain = None
@@ -73,30 +74,44 @@ class WuggyGenerator():
         self.match_statistics = {}
         self.lookup_lexicon = {}
 
-    def load(self, language_plugin_name: str) -> None:
+    def load(self, language_plugin_name: str, local_language_plugin: BaseLanguagePlugin = None) -> None:
         """
         Loads in a language plugin, if available, and stores the corresponding bigramchains.
         """
+        print(local_language_plugin.__class__)
+        if local_language_plugin:
+            self.language_plugin_data_path = os.path.dirname(
+                inspect.getfile(local_language_plugin.__class__))
+            self.language_plugin_name = language_plugin_name
+            language_plugin = local_language_plugin
 
-        try:
-            plugin_module = importlib.import_module(
+        if local_language_plugin is None:
+            language_plugin_module = importlib.import_module(
                 f".plugins.language_data.{language_plugin_name}.{language_plugin_name}", "wuggy")
-        except:
-            raise ValueError(
-                f"This language is not supported by Wuggy at this moment. If this is a local plugin, .... TODO: change this string")
-        print(plugin_module.__name__)
+            self.language_plugin_data_path = os.path.dirname(
+                os.path.dirname(language_plugin_module.__file__))
+            self.language_plugin_name = language_plugin_module.__name__.rsplit(
+                '.', 1)[-1]
+            if self.language_plugin_name not in self.supported_official_language_plugins:
+                raise ValueError(
+                    f"This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin")
+            language_plugin = language_plugin_module.LanguagePlugin()
+
         if language_plugin_name not in self.bigramchains:
             path = os.path.join(
-                self.data_path, plugin_module.__name__, plugin_module.default_data)
-            if (not os.path.exists(self.data_path)):
-                os.makedirs(os.path)
-            if (not os.path.isfile(path)):
-                self.__download_language_plugin(language_plugin_name, path)
+                self.language_plugin_data_path, language_plugin.default_data)
+            if local_language_plugin is None:
+                if (not os.path.exists(self.language_plugin_data_path)):
+                    os.makedirs(os.path)
+                if (not os.path.isfile(path)):
+                    self.__download_language_plugin(
+                        language_plugin_name, path)
             data_file = codecs.open(path, 'r', encoding='utf-8')
-            self.bigramchains[plugin_module.__name__] = BigramChain(
-                plugin_module)
-            self.bigramchains[plugin_module.__name__].load(data_file)
-        self.__activate(plugin_module.__name__)
+            self.bigramchains[self.language_plugin_name] = BigramChain(
+                language_plugin)
+            self.bigramchains[self.language_plugin_name].load(
+                data_file)
+        self.__activate(self.language_plugin_name)
 
     def __download_language_plugin(self, language_plugin_name: str, path_to_save: str) -> None:
         """
@@ -122,7 +137,7 @@ class WuggyGenerator():
         if type(name) == type(codecs):
             name = name.__name__
         self.bigramchain = self.bigramchains[name]
-        self.plugin_module = self.bigramchain.plugin_module
+        self.language_plugin = self.bigramchain.language_plugin
         self.__load_neighbor_lexicon()
         self.__load_word_lexicon()
         self.__load_lookup_lexicon()
@@ -138,7 +153,7 @@ class WuggyGenerator():
         """
         cutoff = 0
         data_file = codecs.open(
-            "%s/%s/%s" % (self.data_path, self.plugin_module.__name__, self.plugin_module.default_word_lexicon), 'r', encoding="utf-8")
+            "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_word_lexicon), 'r', encoding="utf-8")
         self.word_lexicon = defaultdict(list)
         lines = data_file.readlines()
         for line in lines:
@@ -156,7 +171,7 @@ class WuggyGenerator():
         """
         cutoff = 0
         data_file = codecs.open(
-            "%s/%s/%s" % (self.data_path, self.plugin_module.__name__, self.plugin_module.default_neighbor_lexicon), 'r', encoding="utf-8")
+            "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_neighbor_lexicon), 'r', encoding="utf-8")
         self.neighbor_lexicon = []
         lines = data_file.readlines()
         for line in lines:
@@ -175,10 +190,10 @@ class WuggyGenerator():
         self.lookup_lexicon = {}
         if data_file == None:
             data_file = codecs.open(
-                "%s/%s/%s" % (self.data_path, self.plugin_module.__name__, self.plugin_module.default_lookup_lexicon), 'r', encoding="utf-8")
+                "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_lookup_lexicon), 'r', encoding="utf-8")
         lines = data_file.readlines()
         for line in lines:
-            fields = line.strip().split(self.plugin_module.separator)
+            fields = line.strip().split(self.language_plugin.separator)
             reference, representation = fields[0:2]
             self.lookup_lexicon[reference] = representation
         data_file.close()
@@ -196,14 +211,14 @@ class WuggyGenerator():
         Returns a list of all attribute fields of the currently activated language plugin as a named tuple.
         This should only be used internally, read the property "supported_attribute_filters" instead.
         """
-        return self.plugin_module.Segment._fields
+        return self.language_plugin.Segment._fields
 
     def __get_default_attributes(self) -> [str]:
         """
         Returns a list of default attribute fields of the currently activated language plugin.
         This should only be used internally, read the property "default_attributes" instead.
         """
-        return self.plugin_module.default_fields
+        return self.language_plugin.default_fields
 
     @_loaded_language_plugin_required
     def set_reference_sequence(self, sequence: str) -> None:
@@ -211,13 +226,13 @@ class WuggyGenerator():
         Set the reference sequence.
         This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.
         """
-        self.reference_sequence = self.plugin_module.transform(
+        self.reference_sequence = self.language_plugin.transform(
             sequence).representation
         self.reference_sequence_frequencies = self.bigramchain.get_frequencies(
             self.reference_sequence)
         self.__clear_stat_cache()
         for name in self.__get_statistics():
-            function = eval("self.plugin_module.statistic_%s" % (name))
+            function = eval("self.language_plugin.statistic_%s" % (name))
             self.reference_statistics[name] = function(
                 self, self.reference_sequence)
 
@@ -245,7 +260,7 @@ class WuggyGenerator():
         This should only be used internally, read the property "supported_statistics" instead.
         """
         names = [name for name in dir(
-            self.plugin_module) if name.startswith('statistic')]
+            self.language_plugin) if name.startswith('statistic')]
         return [name.replace('statistic_', '') for name in names]
 
     def set_statistic(self, name: str) -> None:
@@ -280,7 +295,7 @@ class WuggyGenerator():
         if sequence == None:
             sequence = self.current_sequence
         for name in self.statistics:
-            function = eval("self.plugin_module.statistic_%s" % (name))
+            function = eval("self.language_plugin.statistic_%s" % (name))
             if (sequence, name) in self.stat_cache:
                 self.statistics[name] = self.stat_cache[(sequence, name)]
             else:
@@ -316,7 +331,7 @@ class WuggyGenerator():
         List output modes of the currently activated language plugin.
         """
         names = [name for name in dir(
-            self.plugin_module) if name.startswith('output')]
+            self.language_plugin) if name.startswith('output')]
         return [name.replace('output_', '') for name in names]
 
     def set_output_mode(self, name: str) -> None:
@@ -325,7 +340,7 @@ class WuggyGenerator():
         """
         if name not in self.list_output_modes():
             raise ValueError(f"Output mode {name} is not supported.")
-        self.output_mode = eval("self.plugin_module.output_%s" % (name))
+        self.output_mode = eval("self.language_plugin.output_%s" % (name))
 
     def set_attribute_filter(self, name: str) -> None:
         """
@@ -433,7 +448,7 @@ class WuggyGenerator():
             for sequence in subchain.generate():
                 if (time()-starttime) >= max_search_time:
                     return pseudoword_matches
-                if self.plugin_module.output_plain(sequence) in self.sequence_cache:
+                if self.language_plugin.output_plain(sequence) in self.sequence_cache:
                     continue
                 self.current_sequence = sequence
                 self.apply_statistics()
@@ -442,7 +457,7 @@ class WuggyGenerator():
 
                 if (self.statistics["overlap_ratio"] == subsyllabic_segment_overlap_ratio and self.statistics["lexicality"] == "N"):
                     self.sequence_cache.append(
-                        self.plugin_module.output_plain(sequence))
+                        self.language_plugin.output_plain(sequence))
                     match = {"word": input_sequence,
                              "match": self.output_mode(sequence)}
                     match.update({"statistics": self.statistics,
@@ -480,11 +495,11 @@ class WuggyGenerator():
                 "No reference sequence was set. Ignore this message if this was intentional.")
             subchain.set_startkeys()
         for sequence in subchain.generate():
-            if self.plugin_module.output_plain(sequence) in self.sequence_cache:
+            if self.language_plugin.output_plain(sequence) in self.sequence_cache:
                 pass
             else:
                 self.sequence_cache.append(
-                    self.plugin_module.output_plain(sequence))
+                    self.language_plugin.output_plain(sequence))
                 self.current_sequence = sequence
                 self.apply_statistics()
                 yield self.output_mode(sequence)

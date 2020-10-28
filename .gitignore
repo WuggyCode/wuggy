@@ -138,3 +138,5 @@ dmypy.json
 cython_debug/
 
 build_documentation
+
+.vscode

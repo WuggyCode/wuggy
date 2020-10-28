@@ -17,6 +17,7 @@ from time import time
 import importlib
 import inspect
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
+from pathlib import Path
 
 
 def _loaded_language_plugin_required(func):
@@ -53,7 +54,7 @@ class WuggyGenerator():
         self.bigramchains = {}
         self.supported_official_language_plugins = ["orthographic_dutch", "orthographic_english", "orthographic_french", "orthographic_german", "orthographic_italian", "orthographic_polish", "orthographic_serbian_cyrillic"
                                                     "orthographic_serbian_latin", "orthographic_spanish" "orthographic_vietnamese", "phonetic_english_celex", "phonetic_english_cmu", "phonetic_french", "phonetic_italian"]
-        self.__language_plugin_repository_url = "https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/"
+        self.__official_language_plugin_repository_url = "https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/"
         self.attribute_subchain = None
         self.frequency_subchain = None
         self.reference_sequence = None
@@ -78,7 +79,6 @@ class WuggyGenerator():
         """
         Loads in a language plugin, if available, and stores the corresponding bigramchains.
         """
-        print(local_language_plugin.__class__)
         if local_language_plugin:
             self.language_plugin_data_path = os.path.dirname(
                 inspect.getfile(local_language_plugin.__class__))
@@ -86,27 +86,28 @@ class WuggyGenerator():
             language_plugin = local_language_plugin
 
         if local_language_plugin is None:
-            language_plugin_module = importlib.import_module(
-                f".plugins.language_data.{language_plugin_name}.{language_plugin_name}", "wuggy")
-            self.language_plugin_data_path = os.path.dirname(
-                os.path.dirname(language_plugin_module.__file__))
-            self.language_plugin_name = language_plugin_module.__name__.rsplit(
-                '.', 1)[-1]
-            if self.language_plugin_name not in self.supported_official_language_plugins:
+            if language_plugin_name not in self.supported_official_language_plugins:
                 raise ValueError(
                     f"This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin")
-            language_plugin = language_plugin_module.LanguagePlugin()
+            self.language_plugin_name = language_plugin_name
+            language_plugins_folder_dirname = os.path.join(
+                Path(__file__).parents[1], "plugins", "language_data")
+            if not os.path.exists(language_plugins_folder_dirname):
+                os.makedirs(language_plugins_folder_dirname)
+            self.language_plugin_data_path = os.path.join(
+                language_plugins_folder_dirname, language_plugin_name)
+            if not os.path.exists(self.language_plugin_data_path):
+                os.makedirs(self.language_plugin_data_path)
+                self.__download_language_plugin(
+                    language_plugin_name, self.language_plugin_data_path)
+            language_plugin = importlib.import_module(
+                f".plugins.language_data.{language_plugin_name}.{language_plugin_name}", "wuggy").LanguagePlugin()
 
         if language_plugin_name not in self.bigramchains:
-            path = os.path.join(
+            default_data_path = os.path.join(
                 self.language_plugin_data_path, language_plugin.default_data)
-            if local_language_plugin is None:
-                if (not os.path.exists(self.language_plugin_data_path)):
-                    os.makedirs(os.path)
-                if (not os.path.isfile(path)):
-                    self.__download_language_plugin(
-                        language_plugin_name, path)
-            data_file = codecs.open(path, 'r', encoding='utf-8')
+
+            data_file = codecs.open(default_data_path, 'r', encoding='utf-8')
             self.bigramchains[self.language_plugin_name] = BigramChain(
                 language_plugin)
             self.bigramchains[self.language_plugin_name].load(
@@ -120,12 +121,24 @@ class WuggyGenerator():
         # TODO: should this become a prompt? Currently auto-downloads.
         # TODO: ensure this works if you use Wuggy as a module, there are issues currently.
         warnings.warn(
-            f"The language plugin {language_plugin_name} was not found. Wuggy is currently downloading this plugin for you...")
-        raw_file = urlopen(
-            f"{self.__language_plugin_repository_url}{language_plugin_name}.txt")
-        file = open(f'{path_to_save}', 'w', encoding="utf-8")
+            f"The official language plugin {language_plugin_name} was not found in local storage. Wuggy is currently downloading this plugin for you...")
+        py_file_name = f"{language_plugin_name}.py"
+        py_file = urlopen(
+            f"{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}")
 
-        for line in raw_file:
+        file = open(f'{path_to_save}/{py_file_name}',
+                    'w', encoding="utf-8")
+        # TODO: perhaps read the default data file locations from the .py file for more flexibility
+        # The current setup assumes that every official Wuggy language plugin use a single data file
+        for line in py_file:
+            file.write(line.decode("utf-8"))
+        data_file_name = f"{language_plugin_name}.txt"
+        data_file = urlopen(
+            f"{self.__official_language_plugin_repository_url}/{language_plugin_name}/{data_file_name}")
+        file = open(f'{path_to_save}/{data_file_name}',
+                    'w', encoding="utf-8")
+
+        for line in data_file:
             file.write(line.decode("utf-8"))
 
     def __activate(self, name: str) -> None:
@@ -220,7 +233,7 @@ class WuggyGenerator():
         """
         return self.language_plugin.default_fields
 
-    @_loaded_language_plugin_required
+    @ _loaded_language_plugin_required
     def set_reference_sequence(self, sequence: str) -> None:
         """
         Set the reference sequence.
@@ -401,7 +414,7 @@ class WuggyGenerator():
         self.frequency_subchain = subchain.frequency_filter(
             reference_sequence, lower, upper)
 
-    @_loaded_language_plugin_required
+    @ _loaded_language_plugin_required
     def generate_classic(self, input_sequences: [str], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3), match_letter_length: bool = True) -> [Dict]:
         """
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
@@ -467,7 +480,7 @@ class WuggyGenerator():
                     if len(pseudoword_matches) >= ncandidates:
                         return pseudoword_matches
 
-    @_loaded_language_plugin_required_generator
+    @ _loaded_language_plugin_required_generator
     def generate(self, clear_cache: bool = True) -> Union[Generator[str, None, None], Generator[tuple, None, None]]:
         """
         Creates a generator which can be iterated to return generated pseudowords.

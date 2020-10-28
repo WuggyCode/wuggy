@@ -233,7 +233,7 @@ class WuggyGenerator():
         """
         return self.language_plugin.default_fields
 
-    @ _loaded_language_plugin_required
+    @_loaded_language_plugin_required
     def set_reference_sequence(self, sequence: str) -> None:
         """
         Set the reference sequence.
@@ -414,7 +414,7 @@ class WuggyGenerator():
         self.frequency_subchain = subchain.frequency_filter(
             reference_sequence, lower, upper)
 
-    @ _loaded_language_plugin_required
+    @_loaded_language_plugin_required
     def generate_classic(self, input_sequences: [str], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3), match_letter_length: bool = True) -> [Dict]:
         """
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
@@ -480,7 +480,7 @@ class WuggyGenerator():
                     if len(pseudoword_matches) >= ncandidates:
                         return pseudoword_matches
 
-    @ _loaded_language_plugin_required_generator
+    @_loaded_language_plugin_required_generator
     def generate(self, clear_cache: bool = True) -> Union[Generator[str, None, None], Generator[tuple, None, None]]:
         """
         Creates a generator which can be iterated to return generated pseudowords.

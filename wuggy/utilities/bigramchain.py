@@ -1,4 +1,3 @@
-import codecs
 import random
 from collections import defaultdict, namedtuple
 

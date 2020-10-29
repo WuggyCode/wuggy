@@ -7,7 +7,7 @@ with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 setuptools.setup(
-    name="Wuggy",
+    name="wuggy",
     version="0.0.1",
     author="Emmanuel Keuleers",
     author_email="E.A.Keuleers@tilburguniversity.edu",

@@ -38,7 +38,6 @@ from time import time
 from typing import Dict, Generator, Optional, Union
 from urllib.request import urlopen
 from warnings import warn
-
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
 from ..utilities.bigramchain import BigramChain
 
@@ -73,8 +72,6 @@ def _loaded_language_plugin_required_generator(func):
 
 class WuggyGenerator():
     def __init__(self):
-        self.data_path = os.path.join(os.path.dirname(
-            __file__), &#34;..&#34;, &#34;plugins/language_data&#34;)
         self.bigramchain = None
         self.bigramchains = {}
         self.supported_official_language_plugin_names = [
@@ -603,8 +600,6 @@ class WuggyGenerator():
 </summary>
 <pre><code class="python">class WuggyGenerator():
     def __init__(self):
-        self.data_path = os.path.join(os.path.dirname(
-            __file__), &#34;..&#34;, &#34;plugins/language_data&#34;)
         self.bigramchain = None
         self.bigramchains = {}
         self.supported_official_language_plugin_names = [

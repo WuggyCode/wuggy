@@ -1,23 +1,20 @@
 from collections import namedtuple
 from fractions import Fraction
-import os
-import sys
+
 # Pylint may report no-member error due to C extension
 import Levenshtein
-from collections import namedtuple
-import inspect
 
 
-def compute_difference(self, gen_stat, ref_stat):
+def compute_difference(gen_stat, ref_stat):
     if type(gen_stat) in (tuple, list):
-        return [gen_stat[i]-ref_stat[i] for i in range(min(len(gen_stat), len(ref_stat)))]
-    elif type(gen_stat) == dict:
-        return dict((i, gen_stat[i]-ref_stat[i]) for i in range(len(gen_stat)))
+        return [gen_stat[i] - ref_stat[i] for i in range(min(len(gen_stat), len(ref_stat)))]
+    elif isinstance(gen_stat, dict):
+        return dict((i, gen_stat[i] - ref_stat[i]) for i in range(len(gen_stat)))
     elif type(gen_stat) in [float, int]:
-        return gen_stat-ref_stat
+        return gen_stat - ref_stat
 
 
-def compute_match(self, gen_stat, ref_stat):
+def compute_match(gen_stat, ref_stat):
     if gen_stat == ref_stat:
         return True
     else:
@@ -35,8 +32,6 @@ def difference(function):
 
 
 class BaseLanguagePlugin():
-    # sys.path.append(os.pardir)
-    # name = ???
     separator = u'\t'
     subseparator = u'|'
     default_fields = ['sequence_length']
@@ -47,11 +42,9 @@ class BaseLanguagePlugin():
     SegmentH = namedtuple('Segment', ('sequence_length',
                                       'segment_length', 'letters', 'hidden'))
 
-    @staticmethod
-    def transform():
+    def transform(self):
         raise NotImplementedError
 
-    @staticmethod
     def pre_transform(self, input_sequence, frequency=1, language=None):
         syllables = input_sequence.split('-')
         representation = []
@@ -67,7 +60,6 @@ class BaseLanguagePlugin():
         representation.append((self.Segment(len(syllables), 1, '$')))
         return self.Sequence(tuple(representation), frequency)
 
-    @staticmethod
     def copy_onc(self, input_sequence, frequency=1):
         representation = []
         syllables = input_sequence.split(u'-')
@@ -81,7 +73,6 @@ class BaseLanguagePlugin():
         representation.append((self.Segment(nsyllables, 1, '$')))
         return self.Sequence(tuple(representation), frequency)
 
-    @staticmethod
     def copy_onc_hidden(self, input_sequence, frequency=1):
         representation = []
         sequence, hidden_sequence = input_sequence.split(u'|')
@@ -99,37 +90,36 @@ class BaseLanguagePlugin():
         return self.Sequence(tuple(representation), frequency)
 
     # output modes
-    @staticmethod
+
     def output_pass(self, sequence):
         return sequence[1::-1]
 
-    @staticmethod
     def output_plain(self, sequence):
         return u''.join([segment.letters for segment in sequence[1:-1]])
 
-    @staticmethod
     def output_syllabic(self, sequence):
-        return '-'.join(u''.join(segment.letters for segment in sequence[i-3:i]) for i in range(4, len(sequence), 3))
+        return '-'.join(
+            u''.join(segment.letters for segment in sequence[i - 3: i])
+            for i in range(4, len(sequence),
+                           3))
 
-    @staticmethod
     def output_segmental(self, sequence):
         return u':'.join([segment.letters for segment in sequence[1:-1]])
 
-    @staticmethod
     def statistic_overlap(self, generator, generated_sequence):
-        return sum([generator.reference_sequence[i] == generated_sequence[i] for i in range(1, len(generator.reference_sequence)-1)])
+        return sum([generator.reference_sequence[i] == generated_sequence[i]
+                    for i in range(1, len(generator.reference_sequence) - 1)])
 
-    @staticmethod
     def statistic_overlap_ratio(self, generator, generated_sequence):
-        return Fraction(self.statistic_overlap(generator, generated_sequence), len(generator.reference_sequence)-2)
+        return Fraction(
+            self.statistic_overlap(generator, generated_sequence),
+            len(generator.reference_sequence) - 2)
 
-    @staticmethod
     @match
     @difference
     def statistic_plain_length(self, generator, generated_sequence):
-        return len(self.output_plain(generated_sequence))-2
+        return len(self.output_plain(generated_sequence)) - 2
 
-    @staticmethod
     @match
     def statistic_lexicality(self, generator, generated_sequence):
         candidate = self.output_plain(generated_sequence)
@@ -138,18 +128,15 @@ class BaseLanguagePlugin():
         else:
             return "N"
 
-    @staticmethod
     @difference
     def _distance(self, source, target):
         return Levenshtein.distance(source, target)
 
-    @staticmethod
     def _old(self, source, lexicon, n):
         distances = (distance for neighbor,
                      distance in self._neighbors(source, lexicon, n))
-        return sum(distances)/float(n)
+        return sum(distances) / float(n)
 
-    @staticmethod
     def _neighbors(self, source, lexicon, n):
         neighbors = []
         for target in lexicon:
@@ -157,34 +144,32 @@ class BaseLanguagePlugin():
         neighbors.sort(key=lambda x: x[1])
         return neighbors[0:n]
 
-    @staticmethod
     def _neighbors_at_distance(self, source, lexicon, distance):
         neighbors = []
         for target in lexicon:
-            if abs(len(target)-len(source)) > distance:
+            if abs(len(target) - len(source)) > distance:
                 pass
             elif Levenshtein.distance(source, target) == 1:
                 neighbors.append(target)
         return neighbors
 
-    @staticmethod
     @match
     @difference
     def statistic_old20(self, generator, generated_sequence):
         return self._old(self.output_plain(generated_sequence), generator.neighbor_lexicon, 20)
 
-    @staticmethod
     @match
     @difference
     def statistic_ned1(self, generator, generated_sequence):
-        return len(self._neighbors_at_distance(self.output_plain(generated_sequence), generator.neighbor_lexicon, 1))
+        return len(
+            self._neighbors_at_distance(
+                self.output_plain(generated_sequence),
+                generator.neighbor_lexicon, 1))
 
-    @staticmethod
     @difference
     def statistic_transition_frequencies(self, generator, generated_sequence):
         return generator.bigramchain.get_frequencies(generated_sequence)
 
-    @staticmethod
     def onsetnucleuscoda(self, orthographic_syllable, lang=None):
         self.oncpattern = lang.oncpattern
         m = self.oncpattern.match(orthographic_syllable)

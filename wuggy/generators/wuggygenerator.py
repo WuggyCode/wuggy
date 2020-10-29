@@ -2,14 +2,21 @@ import codecs
 import importlib
 import inspect
 import os
+import pickle
+import threading
+import warnings
 from collections import defaultdict, namedtuple
+from enum import Enum
 from fractions import Fraction
 from functools import wraps
+from math import floor
 from pathlib import Path
 from time import time
-from typing import Dict, Generator, Optional, Union
+from typing import Any, Callable, Dict, Generator, Optional, Union
 from urllib.request import urlopen
 from warnings import warn
+
+import wuggy.plugins.language_data.orthographic_english.orthographic_english
 
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
 from ..utilities.bigramchain import BigramChain
@@ -45,6 +52,8 @@ def _loaded_language_plugin_required_generator(func):
 
 class WuggyGenerator():
     def __init__(self):
+        self.data_path = os.path.join(os.path.dirname(
+            __file__), "..", "plugins/language_data")
         self.bigramchain = None
         self.bigramchains = {}
         self.supported_official_language_plugin_names = [

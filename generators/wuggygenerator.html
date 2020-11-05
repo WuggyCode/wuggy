@@ -38,6 +38,7 @@ from time import time
 from typing import Dict, Generator, Optional, Union
 from urllib.request import urlopen
 from warnings import warn
+
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
 from ..utilities.bigramchain import BigramChain
 
@@ -258,10 +259,10 @@ class WuggyGenerator():
             self.lookup_lexicon[reference] = representation
         data_file.close()
 
-    def lookup(self, reference: str) -&gt; Optional[str]:
+    def lookup_reference_segments(self, reference: str) -&gt; Optional[str]:
         &#34;&#34;&#34;
         Look up a given reference (word) from the currently active lookup lexicon.
-        Returns None if the word is not found.
+        Returns the segments of the found word, if the word is not found it returns None.
         Commonly used to error check if a given word exists before passing it as a reference sequence.
         &#34;&#34;&#34;
         return self.lookup_lexicon.get(reference, None)
@@ -465,7 +466,7 @@ class WuggyGenerator():
 
     @_loaded_language_plugin_required
     def generate_classic(self, input_sequences: [str],
-                         ncandidates: int = 10, max_search_time: int = 10,
+                         ncandidates: int = 10, max_search_time_per_sequence: int = 10,
                          subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
                          match_letter_length: bool = True) -&gt; [Dict]:
         &#34;&#34;&#34;
@@ -481,7 +482,7 @@ class WuggyGenerator():
                 self.__generate_classic_inner(
                     input_sequence,
                     ncandidates,
-                    max_search_time,
+                    max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
                     match_letter_length))
         return pseudoword_matches
@@ -496,10 +497,11 @@ class WuggyGenerator():
         self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
-        if self.lookup(input_sequence) is None:
+        input_sequence_segments = self.lookup_reference_segments(input_sequence)
+        if input_sequence_segments is None:
             raise Exception(
-                f&#34;Word was not found in lexicon {self.current_language_plugin_name}&#34;)
-        self.set_reference_sequence(input_sequence)
+                f&#34;Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}&#34;)
+        self.set_reference_sequence(input_sequence_segments)
         self.set_output_mode(&#34;plain&#34;)
         subchain = self.bigramchain
         self.set_all_statistics()
@@ -533,6 +535,7 @@ class WuggyGenerator():
                     self.sequence_cache.append(
                         self.language_plugin.output_plain(sequence))
                     match = {&#34;word&#34;: input_sequence,
+                             &#34;segments&#34;: input_sequence_segments,
                              &#34;match&#34;: self.output_mode(sequence)}
                     match.update({&#34;statistics&#34;: self.statistics,
                                   &#34;difference_statistics&#34;: self.difference_statistics})
@@ -786,10 +789,10 @@ class WuggyGenerator():
             self.lookup_lexicon[reference] = representation
         data_file.close()
 
-    def lookup(self, reference: str) -&gt; Optional[str]:
+    def lookup_reference_segments(self, reference: str) -&gt; Optional[str]:
         &#34;&#34;&#34;
         Look up a given reference (word) from the currently active lookup lexicon.
-        Returns None if the word is not found.
+        Returns the segments of the found word, if the word is not found it returns None.
         Commonly used to error check if a given word exists before passing it as a reference sequence.
         &#34;&#34;&#34;
         return self.lookup_lexicon.get(reference, None)
@@ -993,7 +996,7 @@ class WuggyGenerator():
 
     @_loaded_language_plugin_required
     def generate_classic(self, input_sequences: [str],
-                         ncandidates: int = 10, max_search_time: int = 10,
+                         ncandidates: int = 10, max_search_time_per_sequence: int = 10,
                          subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
                          match_letter_length: bool = True) -&gt; [Dict]:
         &#34;&#34;&#34;
@@ -1009,7 +1012,7 @@ class WuggyGenerator():
                 self.__generate_classic_inner(
                     input_sequence,
                     ncandidates,
-                    max_search_time,
+                    max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
                     match_letter_length))
         return pseudoword_matches
@@ -1024,10 +1027,11 @@ class WuggyGenerator():
         self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
-        if self.lookup(input_sequence) is None:
+        input_sequence_segments = self.lookup_reference_segments(input_sequence)
+        if input_sequence_segments is None:
             raise Exception(
-                f&#34;Word was not found in lexicon {self.current_language_plugin_name}&#34;)
-        self.set_reference_sequence(input_sequence)
+                f&#34;Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}&#34;)
+        self.set_reference_sequence(input_sequence_segments)
         self.set_output_mode(&#34;plain&#34;)
         subchain = self.bigramchain
         self.set_all_statistics()
@@ -1061,6 +1065,7 @@ class WuggyGenerator():
                     self.sequence_cache.append(
                         self.language_plugin.output_plain(sequence))
                     match = {&#34;word&#34;: input_sequence,
+                             &#34;segments&#34;: input_sequence_segments,
                              &#34;match&#34;: self.output_mode(sequence)}
                     match.update({&#34;statistics&#34;: self.statistics,
                                   &#34;difference_statistics&#34;: self.difference_statistics})
@@ -1260,7 +1265,7 @@ def generate(
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic"><code class="name flex">
-<span>def <span class="ident">generate_classic</span></span>(<span>self, input_sequences: [<class 'str'>], ncandidates: int = 10, max_search_time: int = 10, subsyllabic_segment_overlap_ratio: fractions.Fraction = Fraction(2, 3), match_letter_length: bool = True) ‑> [typing.Dict]</span>
+<span>def <span class="ident">generate_classic</span></span>(<span>self, input_sequences: [<class 'str'>], ncandidates: int = 10, max_search_time_per_sequence: int = 10, subsyllabic_segment_overlap_ratio: fractions.Fraction = Fraction(2, 3), match_letter_length: bool = True) ‑> [typing.Dict]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
@@ -1274,7 +1279,7 @@ TODO: more verbose docstring with example return values</p></div>
 </summary>
 <pre><code class="python">@_loaded_language_plugin_required
 def generate_classic(self, input_sequences: [str],
-                     ncandidates: int = 10, max_search_time: int = 10,
+                     ncandidates: int = 10, max_search_time_per_sequence: int = 10,
                      subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
                      match_letter_length: bool = True) -&gt; [Dict]:
     &#34;&#34;&#34;
@@ -1290,7 +1295,7 @@ def generate_classic(self, input_sequences: [str],
             self.__generate_classic_inner(
                 input_sequence,
                 ncandidates,
-                max_search_time,
+                max_search_time_per_sequence,
                 subsyllabic_segment_overlap_ratio,
                 match_letter_length))
     return pseudoword_matches</code></pre>
@@ -1395,21 +1400,21 @@ def generate_classic(self, input_sequences: [str],
     self.__activate(self.language_plugin_name)</code></pre>
 </details>
 </dd>
-<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.lookup"><code class="name flex">
-<span>def <span class="ident">lookup</span></span>(<span>self, reference: str) ‑> Union[str, NoneType]</span>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.lookup_reference_segments"><code class="name flex">
+<span>def <span class="ident">lookup_reference_segments</span></span>(<span>self, reference: str) ‑> Union[str, NoneType]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Look up a given reference (word) from the currently active lookup lexicon.
-Returns None if the word is not found.
+Returns the segments of the found word, if the word is not found it returns None.
 Commonly used to error check if a given word exists before passing it as a reference sequence.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def lookup(self, reference: str) -&gt; Optional[str]:
+<pre><code class="python">def lookup_reference_segments(self, reference: str) -&gt; Optional[str]:
     &#34;&#34;&#34;
     Look up a given reference (word) from the currently active lookup lexicon.
-    Returns None if the word is not found.
+    Returns the segments of the found word, if the word is not found it returns None.
     Commonly used to error check if a given word exists before passing it as a reference sequence.
     &#34;&#34;&#34;
     return self.lookup_lexicon.get(reference, None)</code></pre>
@@ -1603,7 +1608,7 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies" href="#wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies">get_limit_frequencies</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes" href="#wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes">list_output_modes</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.load" href="#wuggy.generators.wuggygenerator.WuggyGenerator.load">load</a></code></li>
-<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.lookup" href="#wuggy.generators.wuggygenerator.WuggyGenerator.lookup">lookup</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.lookup_reference_segments" href="#wuggy.generators.wuggygenerator.WuggyGenerator.lookup_reference_segments">lookup_reference_segments</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_all_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_all_statistics">set_all_statistics</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filter">set_attribute_filter</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filters" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filters">set_attribute_filters</a></code></li>

@@ -446,7 +446,7 @@ class WuggyGenerator():
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
         This method returns a list of pseudoword matches, including all match and difference statistics.
         Beware that this method always clears the sequence cache and all previously set filters.
-        TODO: more verbose docstring with example return values
+        .. include:: ../../documentation_examples/wuggygenerator/generate_classic.md
         """
         pseudoword_matches = []
         for input_sequence in input_sequences:
@@ -508,7 +508,7 @@ class WuggyGenerator():
                         self.language_plugin.output_plain(sequence))
                     match = {"word": input_sequence,
                              "segments": input_sequence_segments,
-                             "match": self.output_mode(sequence)}
+                             "pseudoword": self.output_mode(sequence)}
                     match.update({"statistics": self.statistics,
                                   "difference_statistics": self.difference_statistics})
 

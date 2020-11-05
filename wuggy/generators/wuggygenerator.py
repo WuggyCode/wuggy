@@ -492,7 +492,6 @@ class WuggyGenerator():
             subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
-            print(self.attribute_filters)
             for sequence in subchain.generate():
                 if (time() - starttime) >= max_search_time:
                     return pseudoword_matches

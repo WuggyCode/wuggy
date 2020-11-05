@@ -27,6 +27,7 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import codecs
+import copy
 import importlib
 import inspect
 import os
@@ -222,6 +223,7 @@ class WuggyGenerator():
         Loads the default neighbor word lexicon for the currently set language plugin.
         This is currently used internally by __activate only, do not call on your own.
         &#34;&#34;&#34;
+        # TODO: check with Emmanuel whether the cutoff should actually be 1!
         cutoff = 0
         data_file = codecs.open(
             &#34;%s/%s&#34; %
@@ -235,7 +237,7 @@ class WuggyGenerator():
             fields = line.strip().split(&#39;\t&#39;)
             word = fields[0]
             frequency_per_million = fields[-1]
-            if float(frequency_per_million) &gt; cutoff:
+            if float(frequency_per_million) &gt;= cutoff:
                 self.neighbor_lexicon.append(word)
         data_file.close()
 
@@ -474,7 +476,7 @@ class WuggyGenerator():
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
         This method returns a list of pseudoword matches, including all match and difference statistics.
         Beware that this method always clears the sequence cache and all previously set filters.
-        TODO: more verbose docstring with example return values
+        .. include:: ../../documentation_examples/wuggygenerator/generate_classic.md
         &#34;&#34;&#34;
         pseudoword_matches = []
         for input_sequence in input_sequences:
@@ -529,18 +531,16 @@ class WuggyGenerator():
                 self.apply_statistics()
                 if match_letter_length and self.difference_statistics[&#34;plain_length&#34;] != 0:
                     continue
-
                 if (self.statistics[&#34;overlap_ratio&#34;] ==
                         subsyllabic_segment_overlap_ratio and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
                     self.sequence_cache.append(
                         self.language_plugin.output_plain(sequence))
                     match = {&#34;word&#34;: input_sequence,
                              &#34;segments&#34;: input_sequence_segments,
-                             &#34;match&#34;: self.output_mode(sequence)}
+                             &#34;pseudoword&#34;: self.output_mode(sequence)}
                     match.update({&#34;statistics&#34;: self.statistics,
                                   &#34;difference_statistics&#34;: self.difference_statistics})
-
-                    pseudoword_matches.append(match)
+                    pseudoword_matches.append(copy.deepcopy(match))
                     if len(pseudoword_matches) &gt;= ncandidates:
                         return pseudoword_matches
 
@@ -752,6 +752,7 @@ class WuggyGenerator():
         Loads the default neighbor word lexicon for the currently set language plugin.
         This is currently used internally by __activate only, do not call on your own.
         &#34;&#34;&#34;
+        # TODO: check with Emmanuel whether the cutoff should actually be 1!
         cutoff = 0
         data_file = codecs.open(
             &#34;%s/%s&#34; %
@@ -765,7 +766,7 @@ class WuggyGenerator():
             fields = line.strip().split(&#39;\t&#39;)
             word = fields[0]
             frequency_per_million = fields[-1]
-            if float(frequency_per_million) &gt; cutoff:
+            if float(frequency_per_million) &gt;= cutoff:
                 self.neighbor_lexicon.append(word)
         data_file.close()
 
@@ -1004,7 +1005,7 @@ class WuggyGenerator():
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
         This method returns a list of pseudoword matches, including all match and difference statistics.
         Beware that this method always clears the sequence cache and all previously set filters.
-        TODO: more verbose docstring with example return values
+        .. include:: ../../documentation_examples/wuggygenerator/generate_classic.md
         &#34;&#34;&#34;
         pseudoword_matches = []
         for input_sequence in input_sequences:
@@ -1059,18 +1060,16 @@ class WuggyGenerator():
                 self.apply_statistics()
                 if match_letter_length and self.difference_statistics[&#34;plain_length&#34;] != 0:
                     continue
-
                 if (self.statistics[&#34;overlap_ratio&#34;] ==
                         subsyllabic_segment_overlap_ratio and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
                     self.sequence_cache.append(
                         self.language_plugin.output_plain(sequence))
                     match = {&#34;word&#34;: input_sequence,
                              &#34;segments&#34;: input_sequence_segments,
-                             &#34;match&#34;: self.output_mode(sequence)}
+                             &#34;pseudoword&#34;: self.output_mode(sequence)}
                     match.update({&#34;statistics&#34;: self.statistics,
                                   &#34;difference_statistics&#34;: self.difference_statistics})
-
-                    pseudoword_matches.append(match)
+                    pseudoword_matches.append(copy.deepcopy(match))
                     if len(pseudoword_matches) &gt;= ncandidates:
                         return pseudoword_matches
 
@@ -1271,8 +1270,18 @@ def generate(
 <div class="desc"><p>This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
 The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
 This method returns a list of pseudoword matches, including all match and difference statistics.
-Beware that this method always clears the sequence cache and all previously set filters.
-TODO: more verbose docstring with example return values</p></div>
+Beware that this method always clears the sequence cache and all previously set filters.</p>
+<h1 id="examples">Examples</h1>
+<h2 id="printing-out-pseudowords">Printing out pseudowords</h2>
+<p>In this example, we will generate pseudowords for the English words <code>car</code> and <code>bicycle</code>. We will print these pseudowords to the console.</p>
+<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+
+g = WuggyGenerator()
+g.load(&quot;orthographic_english&quot;)
+for match in g.generate_classic([&quot;car&quot;, &quot;bicycle&quot;]):
+    print(match[&quot;pseudoword&quot;])
+</code></pre>
+<p>The code above first loads the <code>orthographic_english</code> language plugin. After this, the <code>generate_classic</code> method is called with a list of reference sequences for which we want to generate pseudowords. The method returns a list of pseudoword matches. These matches consist of dictionairies with many details about the match, such as relevant statistics. Since we are only interested in the generated pseudowords, we print the value assigned to the key <code>pseudoword</code>.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1287,7 +1296,7 @@ def generate_classic(self, input_sequences: [str],
     The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
     This method returns a list of pseudoword matches, including all match and difference statistics.
     Beware that this method always clears the sequence cache and all previously set filters.
-    TODO: more verbose docstring with example return values
+    .. include:: ../../documentation_examples/wuggygenerator/generate_classic.md
     &#34;&#34;&#34;
     pseudoword_matches = []
     for input_sequence in input_sequences:

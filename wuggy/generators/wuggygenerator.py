@@ -1,4 +1,5 @@
 import codecs
+import copy
 import importlib
 import inspect
 import os
@@ -194,6 +195,7 @@ class WuggyGenerator():
         Loads the default neighbor word lexicon for the currently set language plugin.
         This is currently used internally by __activate only, do not call on your own.
         """
+        # TODO: check with Emmanuel whether the cutoff should actually be 1!
         cutoff = 0
         data_file = codecs.open(
             "%s/%s" %
@@ -207,7 +209,7 @@ class WuggyGenerator():
             fields = line.strip().split('\t')
             word = fields[0]
             frequency_per_million = fields[-1]
-            if float(frequency_per_million) > cutoff:
+            if float(frequency_per_million) >= cutoff:
                 self.neighbor_lexicon.append(word)
         data_file.close()
 
@@ -501,7 +503,6 @@ class WuggyGenerator():
                 self.apply_statistics()
                 if match_letter_length and self.difference_statistics["plain_length"] != 0:
                     continue
-
                 if (self.statistics["overlap_ratio"] ==
                         subsyllabic_segment_overlap_ratio and self.statistics["lexicality"] == "N"):
                     self.sequence_cache.append(
@@ -511,8 +512,7 @@ class WuggyGenerator():
                              "pseudoword": self.output_mode(sequence)}
                     match.update({"statistics": self.statistics,
                                   "difference_statistics": self.difference_statistics})
-
-                    pseudoword_matches.append(match)
+                    pseudoword_matches.append(copy.deepcopy(match))
                     if len(pseudoword_matches) >= ncandidates:
                         return pseudoword_matches
 

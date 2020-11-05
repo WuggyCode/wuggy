@@ -10,6 +10,7 @@ from time import time
 from typing import Dict, Generator, Optional, Union
 from urllib.request import urlopen
 from warnings import warn
+
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
 from ..utilities.bigramchain import BigramChain
 
@@ -230,10 +231,10 @@ class WuggyGenerator():
             self.lookup_lexicon[reference] = representation
         data_file.close()
 
-    def lookup(self, reference: str) -> Optional[str]:
+    def lookup_reference_segments(self, reference: str) -> Optional[str]:
         """
         Look up a given reference (word) from the currently active lookup lexicon.
-        Returns None if the word is not found.
+        Returns the segments of the found word, if the word is not found it returns None.
         Commonly used to error check if a given word exists before passing it as a reference sequence.
         """
         return self.lookup_lexicon.get(reference, None)
@@ -437,7 +438,7 @@ class WuggyGenerator():
 
     @_loaded_language_plugin_required
     def generate_classic(self, input_sequences: [str],
-                         ncandidates: int = 10, max_search_time: int = 10,
+                         ncandidates: int = 10, max_search_time_per_sequence: int = 10,
                          subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
                          match_letter_length: bool = True) -> [Dict]:
         """
@@ -453,7 +454,7 @@ class WuggyGenerator():
                 self.__generate_classic_inner(
                     input_sequence,
                     ncandidates,
-                    max_search_time,
+                    max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
                     match_letter_length))
         return pseudoword_matches
@@ -468,10 +469,11 @@ class WuggyGenerator():
         self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
-        if self.lookup(input_sequence) is None:
+        input_sequence_segments = self.lookup_reference_segments(input_sequence)
+        if input_sequence_segments is None:
             raise Exception(
-                f"Word was not found in lexicon {self.current_language_plugin_name}")
-        self.set_reference_sequence(input_sequence)
+                f"Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}")
+        self.set_reference_sequence(input_sequence_segments)
         self.set_output_mode("plain")
         subchain = self.bigramchain
         self.set_all_statistics()
@@ -505,6 +507,7 @@ class WuggyGenerator():
                     self.sequence_cache.append(
                         self.language_plugin.output_plain(sequence))
                     match = {"word": input_sequence,
+                             "segments": input_sequence_segments,
                              "match": self.output_mode(sequence)}
                     match.update({"statistics": self.statistics,
                                   "difference_statistics": self.difference_statistics})

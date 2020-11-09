@@ -438,37 +438,50 @@ class WuggyGenerator():
             reference_sequence, lower, upper)
 
     @_loaded_language_plugin_required
-    def generate_classic(self, input_sequences: [str],
-                         ncandidates: int = 10, max_search_time_per_sequence: int = 10,
-                         subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
-                         match_letter_length: bool = True, output_mode: str = "plain") -> [Dict]:
+    def generate_classic(
+            self, input_sequences: [str],
+            ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10,
+            subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
+            match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
+            output_mode: str = "plain", concentric_search: bool = True) -> [Dict]:
         """
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
         This method returns a list of pseudoword matches, including all match and difference statistics.
         Beware that this method always clears the sequence cache and all previously set filters.
-        .. include:: ../../documentation_examples/wuggygenerator/generate_classic.md
+        Parameters:
+            input_sequences: these are the input sequences (words) for which you want to generate pseudowords.
+            ncandidates_per_sequence: this is the n (maximum) amount of pseudowords you want to generate per input sequence.
+            max_search_time_per_sequence: this is the maximum time in seconds to search for pseudowords per input sequence.
+            subsyllabic_segment_overlap_ratio: this is the Fraction ratio for overlap between subsyllabic segments. The default ensures your pseudowords are 'similar' to the original sequence. If set to None, this constraint is not applied.
+            match_subsyllabic_segment_length: determines whether the generated pseudowords must retain the same subsyllabic segment length as the respective input sequence.
+            match_letter_length: determines whether the generated pseudowords must retain the same word length as the respective input sequence.
+            output_mode: output mode for pseudowords, constricted by the output modes supported by the currently loaded language plugin.
+            concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled.
+        .. include:: ../../documentation/wuggygenerator/generate_classic.md
         """
         pseudoword_matches = []
         for input_sequence in input_sequences:
             pseudoword_matches.extend(
                 self.__generate_classic_inner(
                     input_sequence,
-                    ncandidates,
+                    ncandidates_per_sequence,
                     max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
-                    match_letter_length, output_mode))
+                    match_subsyllabic_segment_length,
+                    match_letter_length, output_mode, concentric_search))
         return pseudoword_matches
 
     def __generate_classic_inner(
-        self, input_sequence: str, ncandidates: int, max_search_time: int,
-        subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool,
-            output_mode: str):
+            self, input_sequence: str, ncandidates_per_sequence: int, max_search_time: int,
+            subsyllabic_segment_overlap_ratio: Union[Fraction, None],
+            match_subsyllabic_segment_length: bool, match_letter_length: bool, output_mode: str,
+            concentric_search: bool = True):
         """
         Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
         Should only be used by WuggyGenerator internally.
         """
-        self.__clear_sequence_cache()
+        # self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
         input_sequence_segments = self.lookup_reference_segments(input_sequence)
@@ -481,19 +494,22 @@ class WuggyGenerator():
         self.set_all_statistics()
         starttime = time()
         pseudoword_matches = []
-        self.set_attribute_filter("segment_length")
         frequency_exponent = 1
-        # TODO: concentric search is always enabled. Keep it this way or let users
-        # disable concentric search?
-        while True:
-            self.set_frequency_filter(
-                2**frequency_exponent, 2**frequency_exponent)
-            frequency_exponent += 1
-            self.apply_frequency_filter()
+        if match_subsyllabic_segment_length:
+            self.set_attribute_filter("segment_length")
             self.__apply_attribute_filters()
-            subchain = self.frequency_subchain
+            subchain = self.attribute_subchain
+        while True:
+            if concentric_search:
+                self.set_frequency_filter(
+                    2**frequency_exponent, 2**frequency_exponent)
+                frequency_exponent += 1
+                self.apply_frequency_filter()
+                subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
+            # TODO: fix concentric search results stopping after e.g. 17 words with trumpet
+            # TODO: fix all configs off resulting in different pseudowords compared to legacy
             for sequence in subchain.generate():
                 if (time() - starttime) >= max_search_time:
                     return pseudoword_matches
@@ -501,28 +517,33 @@ class WuggyGenerator():
                     continue
                 self.current_sequence = sequence
                 self.apply_statistics()
-                if match_letter_length and self.difference_statistics["plain_length"] != 0:
+                if (match_letter_length and self.difference_statistics["plain_length"] != 0):
                     continue
-                if (self.statistics["overlap_ratio"] ==
-                        subsyllabic_segment_overlap_ratio and self.statistics["lexicality"] == "N"):
-                    self.sequence_cache.append(
-                        self.language_plugin.output_plain(sequence))
-                    match = {"word": input_sequence,
-                             "segments": input_sequence_segments,
-                             "pseudoword": self.output_mode(sequence)}
-                    match.update({"statistics": self.statistics,
-                                  "difference_statistics": self.difference_statistics})
-                    pseudoword_matches.append(copy.deepcopy(match))
-                    if len(pseudoword_matches) >= ncandidates:
-                        return pseudoword_matches
+                if (subsyllabic_segment_overlap_ratio is not None and self.statistics["overlap_ratio"] !=
+                        subsyllabic_segment_overlap_ratio):
+                    continue
+                if self.statistics["lexicality"] == "W":
+                    continue
+                self.sequence_cache.append(
+                    self.language_plugin.output_plain(sequence))
+                match = {"word": input_sequence,
+                         "segments": input_sequence_segments,
+                         "pseudoword": self.output_mode(sequence)}
+                match.update({"statistics": self.statistics,
+                              "difference_statistics": self.difference_statistics})
+                pseudoword_matches.append(copy.deepcopy(match))
+                if len(pseudoword_matches) >= ncandidates_per_sequence:
+                    return pseudoword_matches
 
     @_loaded_language_plugin_required_generator
-    def generate(self, clear_cache: bool = True) -> Union[Generator[str, None, None],
-                                                          Generator[tuple, None, None]]:
+    def generate_custom(self, clear_cache: bool = True) -> Union[Generator[str, None, None],
+                                                                 Generator[tuple, None, None]]:
         """
-        Creates a generator which can be iterated to return generated pseudowords.
+        Creates a custom generator which can be iterated to return generated pseudowords.
+        The generator's settings, such as output statistics, should be set by you before calling this method.
         If attributes such as \"output_mode\" are not set, sensible defaults are used.
-        TODO: write examples of advanced Wuggy usage with this method
+        Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
+        .. include:: ../../documentation/wuggygenerator/generate_custom.md
         """
         if clear_cache == True:
             self.__clear_sequence_cache()

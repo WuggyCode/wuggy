@@ -195,7 +195,6 @@ class WuggyGenerator():
         Loads the default neighbor word lexicon for the currently set language plugin.
         This is currently used internally by __activate only, do not call on your own.
         """
-        # TODO: check with Emmanuel whether the cutoff should actually be 1!
         cutoff = 0
         data_file = codecs.open(
             "%s/%s" %
@@ -442,7 +441,7 @@ class WuggyGenerator():
     def generate_classic(self, input_sequences: [str],
                          ncandidates: int = 10, max_search_time_per_sequence: int = 10,
                          subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
-                         match_letter_length: bool = True) -> [Dict]:
+                         match_letter_length: bool = True, output_mode: str = "plain") -> [Dict]:
         """
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
@@ -458,12 +457,13 @@ class WuggyGenerator():
                     ncandidates,
                     max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
-                    match_letter_length))
+                    match_letter_length, output_mode))
         return pseudoword_matches
 
     def __generate_classic_inner(
-            self, input_sequence: str, ncandidates: int, max_search_time: int,
-            subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool):
+        self, input_sequence: str, ncandidates: int, max_search_time: int,
+        subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool,
+            output_mode: str):
         """
         Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
         Should only be used by WuggyGenerator internally.
@@ -476,7 +476,7 @@ class WuggyGenerator():
             raise Exception(
                 f"Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}")
         self.set_reference_sequence(input_sequence_segments)
-        self.set_output_mode("plain")
+        self.set_output_mode(output_mode)
         subchain = self.bigramchain
         self.set_all_statistics()
         starttime = time()
@@ -517,8 +517,8 @@ class WuggyGenerator():
                         return pseudoword_matches
 
     @_loaded_language_plugin_required_generator
-    def generate(
-            self, clear_cache: bool = True) -> Union[Generator[str, None, None], Generator[tuple, None, None]]:
+    def generate(self, clear_cache: bool = True) -> Union[Generator[str, None, None],
+                                                          Generator[tuple, None, None]]:
         """
         Creates a generator which can be iterated to return generated pseudowords.
         If attributes such as \"output_mode\" are not set, sensible defaults are used.

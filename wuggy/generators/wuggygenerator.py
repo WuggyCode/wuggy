@@ -130,7 +130,6 @@ class WuggyGenerator():
         Downloads and saves given language plugin to local storage from the corresponding file repository.
         """
         # TODO: should this become a prompt? Currently auto-downloads.
-        # TODO: ensure this works if you use Wuggy as a module, there are issues currently.
         warn(
             f"The official language plugin {language_plugin_name} was not found in local storage. Wuggy is currently downloading this plugin for you...")
         py_file_name = f"{language_plugin_name}.py"
@@ -481,7 +480,7 @@ class WuggyGenerator():
         Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
         Should only be used by WuggyGenerator internally.
         """
-        # self.__clear_sequence_cache()
+        self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
         input_sequence_segments = self.lookup_reference_segments(input_sequence)
@@ -517,7 +516,7 @@ class WuggyGenerator():
                     continue
                 self.current_sequence = sequence
                 self.apply_statistics()
-                if (match_letter_length and self.difference_statistics["plain_length"] != 0):
+                if (not match_subsyllabic_segment_length and match_letter_length and self.difference_statistics["plain_length"] != 0):
                     continue
                 if (subsyllabic_segment_overlap_ratio is not None and self.statistics["overlap_ratio"] !=
                         subsyllabic_segment_overlap_ratio):

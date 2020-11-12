@@ -103,7 +103,7 @@ class WuggyGenerator():
         if local_language_plugin is None:
             if language_plugin_name not in self.supported_official_language_plugin_names:
                 raise ValueError(
-                    f"This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin")
+                    "This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin")
             self.language_plugin_name = language_plugin_name
             language_plugins_folder_dirname = os.path.join(
                 Path(__file__).parents[1], "plugins", "language_data")

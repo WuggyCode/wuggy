@@ -151,7 +151,7 @@ class BigramChain(defaultdict):
             return result.clean(maxpos)
 
     def generate(self, startkeys=None):
-        if startkeys == None:
+        if startkeys is None:
             startkeys = self.startkeys
         startkeys = list(startkeys.items())
         random.shuffle(startkeys)

@@ -161,10 +161,9 @@ class BaseLanguagePlugin():
     @match
     @difference
     def statistic_ned1(self, generator, generated_sequence):
-        return len(
-            self._neighbors_at_distance(
-                self.output_plain(generated_sequence),
-                generator.neighbor_lexicon, 1))
+        return len(self._neighbors_at_distance(
+            self.output_plain(generated_sequence),
+            generator.neighbor_lexicon, 1))
 
     @difference
     def statistic_transition_frequencies(self, generator, generated_sequence):
@@ -175,5 +174,5 @@ class BaseLanguagePlugin():
         m = self.oncpattern.match(orthographic_syllable)
         try:
             return [m.group(1), m.group(2), m.group(3)]
-        except AttributeError:
-            raise AttributeError('Input syllable could not be segmented')
+        except AttributeError as err:
+            raise AttributeError('Input syllable could not be segmented') from err

@@ -8,6 +8,7 @@ from fractions import Fraction
 from functools import wraps
 from pathlib import Path
 from shutil import rmtree
+from sys import stdout
 from time import time
 from typing import Dict, Generator, Optional, Union
 from urllib.request import urlopen
@@ -154,11 +155,20 @@ class WuggyGenerator():
         """
         print(path_to_save)
         if language_plugin_name not in self.supported_official_language_plugin_names:
-            raise ValueError(
-                f"This language is not officially supported by Wuggy at this moment.")
-        # TODO: should this become a prompt? Currently auto-downloads.
-        warn(
-            f"The language plugin {language_plugin_name} was not found in local storage. Wuggy is currently downloading this plugin for you from the official repository...")
+            raise ValueError("This language is not officially supported by Wuggy at this moment.")
+        if not auto_download:
+            while True:
+                stdout.write(
+                    "The language plugin {language_plugin_name} was not found in local storage. Do you allow Wuggy to download this plugin? [y/n]\n")
+                choice = input().lower()
+                if (not (choice.startswith("y") or choice.startswith("n"))):
+                    stdout.write("Please respond with 'y' or 'n'")
+                elif choice.startswith("n"):
+                    raise ValueError(
+                        "User declined permission for Wuggy to download necessary language plugin.")
+                else:
+                    break
+        warn("Wuggy is currently downloading this plugin for you from the official repository...")
 
         py_file_name = f"{language_plugin_name}.py"
         py_file = urlopen(
@@ -570,7 +580,7 @@ class WuggyGenerator():
         Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
         .. include:: ../../documentation/wuggygenerator/generate_custom.md
         """
-        if clear_cache == True:
+        if clear_cache:
             self.__clear_sequence_cache()
         if self.output_mode is None:
             self.set_output_mode("plain")

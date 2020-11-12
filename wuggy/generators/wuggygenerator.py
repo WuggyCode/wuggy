@@ -89,6 +89,9 @@ class WuggyGenerator():
              local_language_plugin: BaseLanguagePlugin = None) -> None:
         """
         Loads in a language plugin, if available, and stores the corresponding bigramchains.
+        Parameters:
+            language_plugin_name: must be the exact string of an official language plugin (see self.supported_official_language_plugin_names). If you are loading in a local plugin, the name can be anything as long as it does not conflict with an already loaded plugin name.
+            local_language_plugin: must be a child class of BaseLanguagePlugin: see BaseLanguagePlugin for more information on how to create a custom language plugin.
         """
         if local_language_plugin:
             self.language_plugin_data_path = os.path.dirname(
@@ -132,7 +135,11 @@ class WuggyGenerator():
         Removes all downloaded (official) language plugins.
         Useful to cleanup after an experiment or to remove corrupt language plugins.
         """
-        rmtree(Path(__file__).parents[1], "plugins", "language_data")
+        try:
+            rmtree(os.path.join(Path(__file__).parents[1], "plugins", "language_data"))
+        except FileNotFoundError as err:
+            raise FileNotFoundError(
+                "The official language plugin folder is already removed.") from err
 
     def download_language_plugin(
             self, language_plugin_name: str, path_to_save: str, auto_download=False) -> None:
@@ -142,7 +149,8 @@ class WuggyGenerator():
         If you need to ensure your Wuggy script works on any machine without user confirmation, execute this method with the
         Parameters:
             language_plugin_name: this is the name for the official language plugin you want to download. If the language name is not officially supported, the method will throw an error.
-            path_to_save: 
+            path_to_save: absolute path to download the language plugin to
+            auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
         """
         print(path_to_save)
         if language_plugin_name not in self.supported_official_language_plugin_names:

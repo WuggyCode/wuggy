@@ -19,7 +19,7 @@ This repository is a work-in-progress and will be finalized in a couple of month
 
 ### Generate documentation
 
-Documentation is generated using `pdoc`. To update documentation locally , run `pdoc --html --output-dir build ./wuggy --force --template-dir ./documentation/templates`. Documentation is updated automatically to the live documentation site when changes are pushed to master using GitHub Actions.
+Documentation is generated using `pdoc`. To update documentation locally , run `pdoc --html --output-dir build_documentation ./wuggy --force --template-dir ./documentation/templates`. Documentation is updated automatically to the live documentation site when changes are pushed to master using GitHub Actions.
 
 ### Uploading a new version to PyPi
 

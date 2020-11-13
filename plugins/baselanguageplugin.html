@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
 <title>wuggy.plugins.baselanguageplugin API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="BaseLanguagePlugin is the Base class used for all official Wuggy language plugins and custom local language plugins …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,11 +22,59 @@
 <h1 class="title">Module <code>wuggy.plugins.baselanguageplugin</code></h1>
 </header>
 <section id="section-intro">
+<p>BaseLanguagePlugin is the Base class used for all official Wuggy language plugins and custom local language plugins.</p>
+<h1 id="examples">Examples</h1>
+<h2 id="creating-a-custom-language-plugin">Creating a custom language plugin</h2>
+<h3 id="based-on-an-official-language-plugin">Based on an official language plugin</h3>
+<p>In this example, we will start off creating a custom language plugin. Create an empty Python file called <code>your_project_file.py</code> and try to run the following code within this file:</p>
+<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+
+g = WuggyGenerator()
+g.load(&quot;orthographic_english&quot;)
+for w in g.generate_classic([&quot;wuggy&quot;]):
+    print(w)
+</code></pre>
+<p>Uh oh! You should be getting an error that <code><a title="wuggy" href="../index.html">wuggy</a></code> is not a word in the <code>orthographic_english</code> lexicon. Let's assume <code><a title="wuggy" href="../index.html">wuggy</a></code> is an important slang word which is essential for our research. We need to customize the <code>orthographic_english</code> lexicon and add the word <code><a title="wuggy" href="../index.html">wuggy</a></code>. </p>
+<ol>
+<li>To keep things simple, let's redownload the <code>orthographic_english</code> plugin to our local machine in the folder your project is currently in. First, create a new folder in the same directory as the Python file you just tested the script in. Call it <code>modified_orthographic_english</code>. Visit the <a href="https://github.com/Zenulous/wuggy_language_plugin_data">official Wuggy language data repository</a> and download the plugin from here and save both the <code>.py</code> and <code>.txt</code> files in the root of the <code>modified_orthographic_english</code> folder. Your project folder structure should now look like this:</li>
+</ol>
+<pre><code>your_project_file.py
+📁modified_orthographic_english
+    -- orthographic_english.py
+    -- orthographic_english.txt
+</code></pre>
+<ol>
+<li>
+<p>The <code>orthographic_english.py</code> file needs to be modified slightly to accomodate for the different folder structure, since the plugin is used outside of the official plugin folder. Go into this file and replace the line <code>from &hellip;baselanguageplugin import <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a></code> with <code>from <a title="wuggy.plugins.baselanguageplugin" href="#wuggy.plugins.baselanguageplugin">wuggy.plugins.baselanguageplugin</a> import <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a></code>.</p>
+</li>
+<li>
+<p>Now we are getting somewhere: you already have a functional local language plugin which you can import. Let's ensure that you have followed the steps properly. Replace the contents of <code>your_project_file.py</code> with:</p>
+</li>
+</ol>
+<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+
+from my_custom_plugin.orthographic_english import LanguagePlugin
+
+g = WuggyGenerator()
+g.load(&quot;modified_orthographic_english&quot;, LanguagePlugin())
+for w in g.generate_classic([&quot;wuggy&quot;]):
+    print(w)
+</code></pre>
+<p>This code passes a custom language plugin name to wuggy, together with an instance of the imported LanguagePlugin class defined in <code>orthographic_english.py</code>. Note how when you run this code, the language plugin loads, but of course you still receive an error since <code><a title="wuggy" href="../index.html">wuggy</a></code> is not a valid word in the lexicon.</p>
+<ol>
+<li>To modify the language lexicon, browse into <code>orthographic_english.txt</code>. Each word is written in the format <code>WORD{tab}WORD_IN_SYLLABLES{tab}OCCURRENCE_PER_MILLION_WORDS</code> (the three word elements are split using a single tab: you must adhere to this for each line in the lexicon). To add <code><a title="wuggy" href="../index.html">wuggy</a></code> to the lexicon, paste <code>wuggy
+wug-gy
+0.01</code> at the end of the document (we assume that wuggy occurs 0.01 times per million words).</li>
+</ol>
+<p>Now, when you execute <code>orthographic_english.py</code> again, you should be generating pseudowords for the word <code><a title="wuggy" href="../index.html">wuggy</a></code>!</p>
+<h3 id="from-scratch">From scratch</h3>
+<p>TODO: a new example will be here soon.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from collections import namedtuple
+<pre><code class="python">&#34;&#34;&#34;.. include:: ../../documentation/baselanguageplugin/baselanguageplugin.md&#34;&#34;&#34;
+from collections import namedtuple
 from fractions import Fraction
 
 # Pylint may report no-member error due to C extension
@@ -189,10 +237,9 @@ class BaseLanguagePlugin():
     @match
     @difference
     def statistic_ned1(self, generator, generated_sequence):
-        return len(
-            self._neighbors_at_distance(
-                self.output_plain(generated_sequence),
-                generator.neighbor_lexicon, 1))
+        return len(self._neighbors_at_distance(
+            self.output_plain(generated_sequence),
+            generator.neighbor_lexicon, 1))
 
     @difference
     def statistic_transition_frequencies(self, generator, generated_sequence):
@@ -203,8 +250,8 @@ class BaseLanguagePlugin():
         m = self.oncpattern.match(orthographic_syllable)
         try:
             return [m.group(1), m.group(2), m.group(3)]
-        except AttributeError:
-            raise AttributeError(&#39;Input syllable could not be segmented&#39;)</code></pre>
+        except AttributeError as err:
+            raise AttributeError(&#39;Input syllable could not be segmented&#39;) from err</code></pre>
 </details>
 </section>
 <section>
@@ -420,10 +467,9 @@ class BaseLanguagePlugin():
     @match
     @difference
     def statistic_ned1(self, generator, generated_sequence):
-        return len(
-            self._neighbors_at_distance(
-                self.output_plain(generated_sequence),
-                generator.neighbor_lexicon, 1))
+        return len(self._neighbors_at_distance(
+            self.output_plain(generated_sequence),
+            generator.neighbor_lexicon, 1))
 
     @difference
     def statistic_transition_frequencies(self, generator, generated_sequence):
@@ -434,8 +480,8 @@ class BaseLanguagePlugin():
         m = self.oncpattern.match(orthographic_syllable)
         try:
             return [m.group(1), m.group(2), m.group(3)]
-        except AttributeError:
-            raise AttributeError(&#39;Input syllable could not be segmented&#39;)</code></pre>
+        except AttributeError as err:
+            raise AttributeError(&#39;Input syllable could not be segmented&#39;) from err</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -529,8 +575,8 @@ class BaseLanguagePlugin():
     m = self.oncpattern.match(orthographic_syllable)
     try:
         return [m.group(1), m.group(2), m.group(3)]
-    except AttributeError:
-        raise AttributeError(&#39;Input syllable could not be segmented&#39;)</code></pre>
+    except AttributeError as err:
+        raise AttributeError(&#39;Input syllable could not be segmented&#39;) from err</code></pre>
 </details>
 </dd>
 <dt id="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin.output_pass"><code class="name flex">
@@ -643,10 +689,9 @@ def statistic_lexicality(self, generator, generated_sequence):
 <pre><code class="python">@match
 @difference
 def statistic_ned1(self, generator, generated_sequence):
-    return len(
-        self._neighbors_at_distance(
-            self.output_plain(generated_sequence),
-            generator.neighbor_lexicon, 1))</code></pre>
+    return len(self._neighbors_at_distance(
+        self.output_plain(generated_sequence),
+        generator.neighbor_lexicon, 1))</code></pre>
 </details>
 </dd>
 <dt id="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin.statistic_old20"><code class="name flex">
@@ -743,7 +788,16 @@ def statistic_transition_frequencies(self, generator, generated_sequence):
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
-<ul></ul>
+<ul>
+<li><a href="#examples">Examples</a><ul>
+<li><a href="#creating-a-custom-language-plugin">Creating a custom language plugin</a><ul>
+<li><a href="#based-on-an-official-language-plugin">Based on an official language plugin</a></li>
+<li><a href="#from-scratch">From scratch</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
 </div>
 <ul id="index">
 <li><h3>Super-module</h3>

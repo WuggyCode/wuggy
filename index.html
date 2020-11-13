@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
 <title>wuggy API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="What is Wuggy? …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,6 +22,253 @@
 <h1 class="title">Package <code>wuggy</code></h1>
 </header>
 <section id="section-intro">
+<h1 id="what-is-wuggy">What is Wuggy?</h1>
+<p>Wuggy is a pseudoword generator particularly geared towards making nonwords for psycholinguistic experiments. Wuggy makes pseudowords in, but not limited to, Basque, Dutch, English, French, German, Serbian (Cyrillic and Latin), Spanish, and Vietnamese.</p>
+<p><a href="http://crr.ugent.be/papers/Wuggy_BRM.pdf">Download our paper on Wuggy here</a> and cite as Keuleers, E., &amp; Brysbaert, M. (2010). Wuggy: A multilingual pseudoword generator. <em>Behavior Research Methods</em> 42(3), 627-633</p>
+<p>Wuggy is a pseudoword generator that uses an innovative approach for generating pseudowords, combining the best of existing approaches.</p>
+<ul>
+<li>
+<p>Traditionally, lists of pseudowords have been available that are based on combining subsyllabic elements that are legal in the language of choice. For instance, by combining the legal onset b (as in bat) with a legal nucleus u (as in fun) and a legal coda p (as in ship), we get the pseudoword bup, which is legal (pronounceable) in English. The problem with this approach is that it leads to a combinatorial explosion. For monosyllabic words, the list is still tractable (hundreds of thousands of pseudowords), but combining elements into polysyllabic strings quickly leads to billions of possibilities. Choosing an appropriate pseudoword for your needs becomes an impossibility because there are too many options to match.</p>
+</li>
+<li>
+<p>Other approaches are based on guessing good pseudowords by combining high frequency letter sequences. These approaches make it possible to produce longer sequences, but these sequences are not necessarily legal in the language, and, by design, the generated sequences do not contain low frequency letters.
+The core algorithm in Wuggy is able to generate all possible pseudowords in the language (depending on the quality of its input, it may make a few impossible ones). However, by employing some smart tricks, Wuggy doesn’t have to generate all these pseudowords before it knows which pseudoword is good for you. In fact, the tougher the restrictions you give Wuggy, the faster it will find the solution. Wuggy does this by restricting the model of the language before it starts generating candidates instead of searching through the list afterwards.</p>
+</li>
+</ul>
+<p>The core algorithm in Wuggy is able to generate all possible pseudowords in the language (depending on the quality of its input, it may make a few impossible ones). However, by employing some smart tricks, Wuggy doesn’t have to generate all these pseudowords before it knows which pseudoword is good for you. In fact, the tougher the restrictions you give Wuggy, the faster it will find the solution. Wuggy does this by restricting the model of the language before it starts generating candidates instead of searching through the list afterwards.</p>
+<h1 id="overview-of-operation">Overview of operation</h1>
+<p>This new version of Wuggy is a Python library intended to allow for easier access to pseudowords within research projects.</p>
+<h2 id="how-do-i-get-started">How do I get started?</h2>
+<h3 id="installing-wuggy">Installing Wuggy</h3>
+<p>Simply run <code>pip install Wuggy</code> and get going! It's never been easier.</p>
+<h3 id="using-wuggy">Using Wuggy</h3>
+<p>Starting out, it is recommended to use the <a href="generators/wuggygenerator.html#wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic">classic</a> mode of Wuggy to quickly get desired pseudowords.
+As you get familiar with Wuggy and realize its broad potential, you may want to consider customizing Wuggy's behaviour using the <a href="generators/wuggygenerator.html#wuggy.generators.wuggygenerator.WuggyGenerator.generate_advanced">advanced</a> mode of Wuggy. In addition, you can create <a href="plugins/baselanguageplugin.html">custom language plugins</a> aligning with the needs of your specific research. You can customize official language plugins such as <code>orthographic_english</code> and add slang words, or even go as far to generate pseudowords for Klingon.</p>
+<h1 id="faq">FAQ</h1>
+<p><strong>How does this version of Wuggy differ and improve upon the legacy version?</strong></p>
+<p>This version of Wuggy is a Python library for a modern audience accustomed to using Python. It allows you to use the well known Wuggy algorithm within existing or new coding projects without the overhead of manually copying pseudowords, as has been the case in the past. For the more daring and experience Wuggy users, Wuggy is more open than before, allowing you to create <a href="plugins/baselanguageplugin.html">your own language plugin</a>.</p>
+<p>If using Wuggy in a Python environment sounds scary, there is no need to fear. This version of Wuggy comes with a <a href="generators/wuggygenerator.html#generate-classic-examples"><code>classic</code> generation method</a>, with defaults set exactly as they were in the legacy Wuggy version.</p>
+<p><strong>Frequently Asked Questions</strong></p>
+<p>I just want a few pseudowords for my stimuli. Do I really need to install Wuggy? Can’t you just give me some?</p>
+<p>Downloading and installing Wuggy is painless and, with some Python experience, you'll have pseudowords within a few minutes.</p>
+<p>Ok, but what kind of pseudowords can I expect from Wuggy?</p>
+<p>The list below shows Wuggy’s output using default settings for some English words with an increasing number of syllables. For each word, we show 5 generated pseudowords.</p>
+<table>
+<thead>
+<tr>
+<th>Word</th>
+<th>Pseudoword</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>car</td>
+<td>cas</td>
+</tr>
+<tr>
+<td>car</td>
+<td>cag</td>
+</tr>
+<tr>
+<td>car</td>
+<td>har</td>
+</tr>
+<tr>
+<td>car</td>
+<td>rar</td>
+</tr>
+<tr>
+<td>car</td>
+<td>dar</td>
+</tr>
+<tr>
+<td>park</td>
+<td>paze</td>
+</tr>
+<tr>
+<td>park</td>
+<td>paft</td>
+</tr>
+<tr>
+<td>park</td>
+<td>palt</td>
+</tr>
+<tr>
+<td>park</td>
+<td>parn</td>
+</tr>
+<tr>
+<td>park</td>
+<td>paff</td>
+</tr>
+<tr>
+<td>border</td>
+<td>bowper</td>
+</tr>
+<tr>
+<td>border</td>
+<td>bowmer</td>
+</tr>
+<tr>
+<td>border</td>
+<td>curder</td>
+</tr>
+<tr>
+<td>border</td>
+<td>besder</td>
+</tr>
+<tr>
+<td>border</td>
+<td>berber</td>
+</tr>
+<tr>
+<td>patrol</td>
+<td>pagril</td>
+</tr>
+<tr>
+<td>patrol</td>
+<td>pabril</td>
+</tr>
+<tr>
+<td>patrol</td>
+<td>pachil</td>
+</tr>
+<tr>
+<td>patrol</td>
+<td>pablyl</td>
+</tr>
+<tr>
+<td>patrol</td>
+<td>paplil</td>
+</tr>
+<tr>
+<td>assistant</td>
+<td>assissite</td>
+</tr>
+<tr>
+<td>assistant</td>
+<td>astontant</td>
+</tr>
+<tr>
+<td>assistant</td>
+<td>astortant</td>
+</tr>
+<tr>
+<td>assistant</td>
+<td>attostant</td>
+</tr>
+<tr>
+<td>assistant</td>
+<td>attustant</td>
+</tr>
+<tr>
+<td>professor</td>
+<td>proforror</td>
+</tr>
+<tr>
+<td>professor</td>
+<td>proforlor</td>
+</tr>
+<tr>
+<td>professor</td>
+<td>profindor</td>
+</tr>
+<tr>
+<td>professor</td>
+<td>profarror</td>
+</tr>
+<tr>
+<td>professor</td>
+<td>profarlor</td>
+</tr>
+<tr>
+<td>helicopter</td>
+<td>tosicolter</td>
+</tr>
+<tr>
+<td>helicopter</td>
+<td>tosicotter</td>
+</tr>
+<tr>
+<td>helicopter</td>
+<td>bolicyrter</td>
+</tr>
+<tr>
+<td>helicopter</td>
+<td>bolicytter</td>
+</tr>
+<tr>
+<td>helicopter</td>
+<td>bolicylter</td>
+</tr>
+<tr>
+<td>transportation</td>
+<td>trathmollation</td>
+</tr>
+<tr>
+<td>transportation</td>
+<td>trathnollation</td>
+</tr>
+<tr>
+<td>transportation</td>
+<td>trathtollation</td>
+</tr>
+<tr>
+<td>transportation</td>
+<td>tranctollation</td>
+</tr>
+<tr>
+<td>transportation</td>
+<td>traugmollation</td>
+</tr>
+<tr>
+<td>matrimonial</td>
+<td>sorbiconial</td>
+</tr>
+<tr>
+<td>matrimonial</td>
+<td>sorbilonial</td>
+</tr>
+<tr>
+<td>matrimonial</td>
+<td>sorbimotial</td>
+</tr>
+<tr>
+<td>matrimonial</td>
+<td>sorsiconial</td>
+</tr>
+<tr>
+<td>matrimonial</td>
+<td>sorsilonial</td>
+</tr>
+<tr>
+<td>congratulations</td>
+<td>concrubonations</td>
+</tr>
+<tr>
+<td>congratulations</td>
+<td>concruborations</td>
+</tr>
+<tr>
+<td>congratulations</td>
+<td>concrulonations</td>
+</tr>
+<tr>
+<td>congratulations</td>
+<td>concrulorations</td>
+</tr>
+<tr>
+<td>congratulations</td>
+<td>concruponations</td>
+</tr>
+</tbody>
+</table>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;.. include:: ../documentation/home.md&#34;</code></pre>
+</details>
 </section>
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
@@ -50,7 +297,18 @@
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
-<ul></ul>
+<ul>
+<li><a href="#what-is-wuggy">What is Wuggy?</a></li>
+<li><a href="#overview-of-operation">Overview of operation</a><ul>
+<li><a href="#how-do-i-get-started">How do I get started?</a><ul>
+<li><a href="#installing-wuggy">Installing Wuggy</a></li>
+<li><a href="#using-wuggy">Using Wuggy</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#faq">FAQ</a></li>
+</ul>
 </div>
 <ul id="index">
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>

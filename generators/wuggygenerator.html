@@ -32,9 +32,12 @@ import importlib
 import inspect
 import os
 from collections import defaultdict, namedtuple
+from csv import writer
 from fractions import Fraction
 from functools import wraps
 from pathlib import Path
+from shutil import rmtree
+from sys import stdout
 from time import time
 from typing import Dict, Generator, Optional, Union
 from urllib.request import urlopen
@@ -116,8 +119,13 @@ class WuggyGenerator():
              local_language_plugin: BaseLanguagePlugin = None) -&gt; None:
         &#34;&#34;&#34;
         Loads in a language plugin, if available, and stores the corresponding bigramchains.
+        Parameters:
+            language_plugin_name: must be the exact string of an official language plugin (see self.supported_official_language_plugin_names). If you are loading in a local plugin, the name can be anything as long as it does not conflict with an already loaded plugin name.
+
+            local_language_plugin: must be a child class of BaseLanguagePlugin: see BaseLanguagePlugin for more information on how to create a custom language plugin.
         &#34;&#34;&#34;
         if local_language_plugin:
+            # TODO: if someone does not pass a class INSTANCE, they get TypeError: &lt;class &#39;type&#39;&gt; is a built-in class, this is a vague error and probably should be abstracted
             self.language_plugin_data_path = os.path.dirname(
                 inspect.getfile(local_language_plugin.__class__))
             self.language_plugin_name = language_plugin_name
@@ -126,21 +134,23 @@ class WuggyGenerator():
         if local_language_plugin is None:
             if language_plugin_name not in self.supported_official_language_plugin_names:
                 raise ValueError(
-                    f&#34;This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin&#34;)
+                    &#34;This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin&#34;)
             self.language_plugin_name = language_plugin_name
             language_plugins_folder_dirname = os.path.join(
                 Path(__file__).parents[1], &#34;plugins&#34;, &#34;language_data&#34;)
+            # TODO: move these os path checks under download method, only if autodownload is off
             if not os.path.exists(language_plugins_folder_dirname):
                 os.makedirs(language_plugins_folder_dirname)
             self.language_plugin_data_path = os.path.join(
                 language_plugins_folder_dirname, language_plugin_name)
             if not os.path.exists(self.language_plugin_data_path):
                 os.makedirs(self.language_plugin_data_path)
-                self.__download_language_plugin(
+                self.download_language_plugin(
                     language_plugin_name, self.language_plugin_data_path)
+            # Official language plugins MUST have the class name &#34;OfficialLanguagePlugin&#34;!
             language_plugin = importlib.import_module(
                 f&#34;.plugins.language_data.{language_plugin_name}.{language_plugin_name}&#34;,
-                &#34;wuggy&#34;).LanguagePlugin()
+                &#34;wuggy&#34;).OfficialLanguagePlugin()
 
         if language_plugin_name not in self.bigramchains:
             default_data_path = os.path.join(
@@ -153,26 +163,58 @@ class WuggyGenerator():
                 data_file)
         self.__activate(self.language_plugin_name)
 
-    def __download_language_plugin(self, language_plugin_name: str, path_to_save: str) -&gt; None:
+    @staticmethod
+    def remove_downloaded_language_plugins() -&gt; None:
         &#34;&#34;&#34;
-        Downloads and saves given language plugin to local storage from the corresponding file repository.
+        Removes all downloaded (official) language plugins.
+        Useful to cleanup after an experiment or to remove corrupt language plugins.
         &#34;&#34;&#34;
-        # TODO: should this become a prompt? Currently auto-downloads.
-        # TODO: ensure this works if you use Wuggy as a module, there are issues currently.
-        warn(
-            f&#34;The official language plugin {language_plugin_name} was not found in local storage. Wuggy is currently downloading this plugin for you...&#34;)
+        try:
+            rmtree(os.path.join(Path(__file__).parents[1], &#34;plugins&#34;, &#34;language_data&#34;))
+        except FileNotFoundError as err:
+            raise FileNotFoundError(
+                &#34;The official language plugin folder is already removed.&#34;) from err
+
+    def download_language_plugin(
+            self, language_plugin_name: str, path_to_save: str, auto_download=False) -&gt; None:
+        &#34;&#34;&#34;
+        Downloads and saves given language plugin to local storage from the corresponding official file repository.
+        This method is called when you load in a language plugin automatically.
+        If you need to ensure your Wuggy script works on any machine without user confirmation, execute this method with the
+        Parameters:
+            language_plugin_name: this is the name for the official language plugin you want to download. If the language name is not officially supported, the method will throw an error.
+
+            path_to_save: absolute path to download the language plugin to.
+
+            auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
+        &#34;&#34;&#34;
+        print(path_to_save)
+        if language_plugin_name not in self.supported_official_language_plugin_names:
+            raise ValueError(&#34;This language is not officially supported by Wuggy at this moment.&#34;)
+        if not auto_download:
+            while True:
+                stdout.write(
+                    f&#34;The language plugin {language_plugin_name} was not found in local storage. Do you allow Wuggy to download this plugin? [y/n]\n&#34;)
+                choice = input().lower()
+                if (not (choice.startswith(&#34;y&#34;) or choice.startswith(&#34;n&#34;))):
+                    stdout.write(&#34;Please respond with &#39;y&#39; or &#39;n&#39;&#34;)
+                elif choice.startswith(&#34;n&#34;):
+                    raise ValueError(
+                        &#34;User declined permission for Wuggy to download necessary language plugin.&#34;)
+                else:
+                    break
+        warn(&#34;Wuggy is currently downloading this plugin for you from the official repository...&#34;)
+
         py_file_name = f&#34;{language_plugin_name}.py&#34;
         py_file = urlopen(
             f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
 
         file = open(f&#39;{path_to_save}/{py_file_name}&#39;,
                     &#39;w&#39;, encoding=&#34;utf-8&#34;)
-        # TODO: perhaps read the default data file locations from the .py file for more flexibility
         # The current setup assumes that every official Wuggy language plugin use a single data file
         for line in py_file:
             file.write(line.decode(&#34;utf-8&#34;))
         data_file_name = f&#34;{language_plugin_name}.txt&#34;
-        # TODO: throw error when fetch fails
         data_file = urlopen(
             f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{data_file_name}&#34;)
         file = open(f&#39;{path_to_save}/{data_file_name}&#39;,
@@ -223,7 +265,6 @@ class WuggyGenerator():
         Loads the default neighbor word lexicon for the currently set language plugin.
         This is currently used internally by __activate only, do not call on your own.
         &#34;&#34;&#34;
-        # TODO: check with Emmanuel whether the cutoff should actually be 1!
         cutoff = 0
         data_file = codecs.open(
             &#34;%s/%s&#34; %
@@ -287,7 +328,7 @@ class WuggyGenerator():
     def set_reference_sequence(self, sequence: str) -&gt; None:
         &#34;&#34;&#34;
         Set the reference sequence.
-        This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.
+        This is commonly used before generate methods in order to set the reference word for which pseudowords should be generated.
         &#34;&#34;&#34;
         self.reference_sequence = self.language_plugin.transform(
             sequence).representation
@@ -428,7 +469,7 @@ class WuggyGenerator():
     def __apply_attribute_filters(self) -&gt; None:
         &#34;&#34;&#34;
         Apply all set attribute filters.
-        This is currently used by generate() internally, do not call on your own.
+        This is currently used by Wuggy internally, do not call on your own.
         &#34;&#34;&#34;
         for attribute, reference_sequence in self.attribute_filters.items():
             subchain = self.attribute_subchain if self.attribute_subchain is not None else self.bigramchain
@@ -467,31 +508,52 @@ class WuggyGenerator():
             reference_sequence, lower, upper)
 
     @_loaded_language_plugin_required
-    def generate_classic(self, input_sequences: [str],
-                         ncandidates: int = 10, max_search_time_per_sequence: int = 10,
-                         subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
-                         match_letter_length: bool = True) -&gt; [Dict]:
+    def generate_classic(
+            self, input_sequences: [str],
+            ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10,
+            subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
+            match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
+            output_mode: str = &#34;plain&#34;, concentric_search: bool = True) -&gt; [Dict]:
         &#34;&#34;&#34;
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
-        This method returns a list of pseudoword matches, including all match and difference statistics.
+        This method returns a list of pseudoword matches, including all match and difference statistics (lexicality, ned1, old2, plain_length, deviation statistics...).
         Beware that this method always clears the sequence cache and all previously set filters.
-        .. include:: ../../documentation_examples/wuggygenerator/generate_classic.md
+        Parameters:
+            input_sequences: these are the input sequences (words) for which you want to generate pseudowords.
+
+            ncandidates_per_sequence: this is the n (maximum) amount of pseudowords you want to generate per input sequence.
+
+            max_search_time_per_sequence: this is the maximum time in seconds to search for pseudowords per input sequence.
+
+            subsyllabic_segment_overlap_ratio: this is the Fraction ratio for overlap between subsyllabic segments. The default ensures your pseudowords are very word-like but not easily identifiable as related to an existing word. If set to None, this constraint is not applied.
+
+            match_subsyllabic_segment_length: determines whether the generated pseudowords must retain the same subsyllabic segment length as the respective input sequence.
+
+            match_letter_length: determines whether the generated pseudowords must retain the same word length as the respective input sequence. This option is redundant if match_subsyllabic_segment_length is set to True.
+
+            output_mode: output mode for pseudowords, constricted by the output modes supported by the currently loaded language plugin.
+
+            concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. First, the algorithm will try to generate candidates that exactly match the transition frequencies of the reference word. Then the maximal allowed deviation in transition frequencies will increase by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.).
+        .. include:: ../../documentation/wuggygenerator/generate_classic.md
         &#34;&#34;&#34;
         pseudoword_matches = []
         for input_sequence in input_sequences:
             pseudoword_matches.extend(
                 self.__generate_classic_inner(
                     input_sequence,
-                    ncandidates,
+                    ncandidates_per_sequence,
                     max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
-                    match_letter_length))
+                    match_subsyllabic_segment_length,
+                    match_letter_length, output_mode, concentric_search))
         return pseudoword_matches
 
     def __generate_classic_inner(
-            self, input_sequence: str, ncandidates: int, max_search_time: int,
-            subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool):
+            self, input_sequence: str, ncandidates_per_sequence: int, max_search_time: int,
+            subsyllabic_segment_overlap_ratio: Union[Fraction, None],
+            match_subsyllabic_segment_length: bool, match_letter_length: bool, output_mode: str,
+            concentric_search: bool = True):
         &#34;&#34;&#34;
         Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
         Should only be used by WuggyGenerator internally.
@@ -504,24 +566,28 @@ class WuggyGenerator():
             raise Exception(
                 f&#34;Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}&#34;)
         self.set_reference_sequence(input_sequence_segments)
-        self.set_output_mode(&#34;plain&#34;)
+        self.set_output_mode(output_mode)
         subchain = self.bigramchain
         self.set_all_statistics()
         starttime = time()
         pseudoword_matches = []
-        self.set_attribute_filter(&#34;segment_length&#34;)
         frequency_exponent = 1
-        # TODO: concentric search is always enabled. Keep it this way or let users
-        # disable concentric search?
-        while True:
-            self.set_frequency_filter(
-                2**frequency_exponent, 2**frequency_exponent)
-            frequency_exponent += 1
-            self.apply_frequency_filter()
+        if match_subsyllabic_segment_length:
+            self.set_attribute_filter(&#34;segment_length&#34;)
             self.__apply_attribute_filters()
-            subchain = self.frequency_subchain
+            subchain = self.attribute_subchain
+        while True:
+            if concentric_search:
+                print(f&#34;freq exponent: {frequency_exponent}&#34;)
+                self.set_frequency_filter(
+                    2**frequency_exponent, 2**frequency_exponent)
+                frequency_exponent += 1
+                self.apply_frequency_filter()
+                subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
+            # TODO: fix concentric search results stopping after e.g. 17 words with trumpet
+            # TODO: fix all configs off resulting in different pseudowords compared to legacy
             for sequence in subchain.generate():
                 if (time() - starttime) &gt;= max_search_time:
                     return pseudoword_matches
@@ -529,30 +595,35 @@ class WuggyGenerator():
                     continue
                 self.current_sequence = sequence
                 self.apply_statistics()
-                if match_letter_length and self.difference_statistics[&#34;plain_length&#34;] != 0:
+                if (not match_subsyllabic_segment_length and match_letter_length and self.difference_statistics[&#34;plain_length&#34;] != 0):
                     continue
-                if (self.statistics[&#34;overlap_ratio&#34;] ==
-                        subsyllabic_segment_overlap_ratio and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
-                    self.sequence_cache.append(
-                        self.language_plugin.output_plain(sequence))
-                    match = {&#34;word&#34;: input_sequence,
-                             &#34;segments&#34;: input_sequence_segments,
-                             &#34;pseudoword&#34;: self.output_mode(sequence)}
-                    match.update({&#34;statistics&#34;: self.statistics,
-                                  &#34;difference_statistics&#34;: self.difference_statistics})
-                    pseudoword_matches.append(copy.deepcopy(match))
-                    if len(pseudoword_matches) &gt;= ncandidates:
-                        return pseudoword_matches
+                if (subsyllabic_segment_overlap_ratio is not None and self.statistics[&#34;overlap_ratio&#34;] !=
+                        subsyllabic_segment_overlap_ratio):
+                    continue
+                if self.statistics[&#34;lexicality&#34;] == &#34;W&#34;:
+                    continue
+                self.sequence_cache.append(
+                    self.language_plugin.output_plain(sequence))
+                match = {&#34;word&#34;: input_sequence,
+                         &#34;segments&#34;: input_sequence_segments,
+                         &#34;pseudoword&#34;: self.output_mode(sequence)}
+                match.update({&#34;statistics&#34;: self.statistics,
+                              &#34;difference_statistics&#34;: self.difference_statistics})
+                pseudoword_matches.append(copy.deepcopy(match))
+                if len(pseudoword_matches) &gt;= ncandidates_per_sequence:
+                    return pseudoword_matches
 
     @_loaded_language_plugin_required_generator
-    def generate(
-            self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
+    def generate_advanced(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None],
+                                                                   Generator[tuple, None, None]]:
         &#34;&#34;&#34;
-        Creates a generator which can be iterated to return generated pseudowords.
+        Creates a custom generator which can be iterated to return generated pseudowords.
+        The generator&#39;s settings, such as output statistics, should be set by you before calling this method.
         If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
-        TODO: write examples of advanced Wuggy usage with this method
+        Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
+        .. include:: ../../documentation/wuggygenerator/generate_custom.md
         &#34;&#34;&#34;
-        if clear_cache == True:
+        if clear_cache:
             self.__clear_sequence_cache()
         if self.output_mode is None:
             self.set_output_mode(&#34;plain&#34;)
@@ -580,7 +651,54 @@ class WuggyGenerator():
                     self.language_plugin.output_plain(sequence))
                 self.current_sequence = sequence
                 self.apply_statistics()
-                yield self.output_mode(sequence)</code></pre>
+                yield self.output_mode(sequence)
+
+    def export_classic_pseudoword_matches_to_csv(
+            self, pseudoword_matches: [Dict],
+            csv_path: str) -&gt; None:
+        &#34;&#34;&#34;
+        Helper function to export generated pseudoword matches from generate_classic to CSV.
+        The dictionairies from the matches are flattened before exporting to CSV.
+        Parameters:
+
+            pseudoword_matches: a dictionairy of pseudoword matches retrieved from generate_classic
+            csv_path: relative path to save csv file to (including the filename, e.g. ./pseudowords.csv)
+        &#34;&#34;&#34;
+        def get_csv_headers(dictionairy: dict):
+            headers = []
+
+            def flatten_nested_dict_keys(dictionairy: dict, parent_dict_key=None):
+                for key, value in dictionairy.items():
+                    key = str(key)
+                    if isinstance(value, dict):
+                        flatten_nested_dict_keys(
+                            value, (parent_dict_key + &#34;_&#34; + key if parent_dict_key else key))
+                    else:
+                        if parent_dict_key:
+                            headers.append((parent_dict_key + &#34;_&#34; + key))
+                        else:
+                            headers.append(key)
+                return headers
+            flatten_nested_dict_keys(dictionairy)
+            return headers
+
+        def get_values_from_nested_dictionairy(dictionairy: dict):
+            dict_vals = []
+
+            def flatten_nested_dict_values(dictionairy: dict):
+                for value in dictionairy.values():
+                    if isinstance(value, dict):
+                        flatten_nested_dict_values(value)
+                    else:
+                        dict_vals.append(value)
+            flatten_nested_dict_values(dictionairy)
+            return dict_vals
+
+        with open(csv_path, &#34;w&#34;, newline=&#39;&#39;) as csvfile:
+            file_writer = writer(csvfile)
+            file_writer.writerow(get_csv_headers(pseudoword_matches[0]))
+            for match in pseudoword_matches:
+                file_writer.writerow(get_values_from_nested_dictionairy(match))</code></pre>
 </details>
 </section>
 <section>
@@ -645,8 +763,13 @@ class WuggyGenerator():
              local_language_plugin: BaseLanguagePlugin = None) -&gt; None:
         &#34;&#34;&#34;
         Loads in a language plugin, if available, and stores the corresponding bigramchains.
+        Parameters:
+            language_plugin_name: must be the exact string of an official language plugin (see self.supported_official_language_plugin_names). If you are loading in a local plugin, the name can be anything as long as it does not conflict with an already loaded plugin name.
+
+            local_language_plugin: must be a child class of BaseLanguagePlugin: see BaseLanguagePlugin for more information on how to create a custom language plugin.
         &#34;&#34;&#34;
         if local_language_plugin:
+            # TODO: if someone does not pass a class INSTANCE, they get TypeError: &lt;class &#39;type&#39;&gt; is a built-in class, this is a vague error and probably should be abstracted
             self.language_plugin_data_path = os.path.dirname(
                 inspect.getfile(local_language_plugin.__class__))
             self.language_plugin_name = language_plugin_name
@@ -655,21 +778,23 @@ class WuggyGenerator():
         if local_language_plugin is None:
             if language_plugin_name not in self.supported_official_language_plugin_names:
                 raise ValueError(
-                    f&#34;This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin&#34;)
+                    &#34;This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin&#34;)
             self.language_plugin_name = language_plugin_name
             language_plugins_folder_dirname = os.path.join(
                 Path(__file__).parents[1], &#34;plugins&#34;, &#34;language_data&#34;)
+            # TODO: move these os path checks under download method, only if autodownload is off
             if not os.path.exists(language_plugins_folder_dirname):
                 os.makedirs(language_plugins_folder_dirname)
             self.language_plugin_data_path = os.path.join(
                 language_plugins_folder_dirname, language_plugin_name)
             if not os.path.exists(self.language_plugin_data_path):
                 os.makedirs(self.language_plugin_data_path)
-                self.__download_language_plugin(
+                self.download_language_plugin(
                     language_plugin_name, self.language_plugin_data_path)
+            # Official language plugins MUST have the class name &#34;OfficialLanguagePlugin&#34;!
             language_plugin = importlib.import_module(
                 f&#34;.plugins.language_data.{language_plugin_name}.{language_plugin_name}&#34;,
-                &#34;wuggy&#34;).LanguagePlugin()
+                &#34;wuggy&#34;).OfficialLanguagePlugin()
 
         if language_plugin_name not in self.bigramchains:
             default_data_path = os.path.join(
@@ -682,26 +807,58 @@ class WuggyGenerator():
                 data_file)
         self.__activate(self.language_plugin_name)
 
-    def __download_language_plugin(self, language_plugin_name: str, path_to_save: str) -&gt; None:
+    @staticmethod
+    def remove_downloaded_language_plugins() -&gt; None:
         &#34;&#34;&#34;
-        Downloads and saves given language plugin to local storage from the corresponding file repository.
+        Removes all downloaded (official) language plugins.
+        Useful to cleanup after an experiment or to remove corrupt language plugins.
         &#34;&#34;&#34;
-        # TODO: should this become a prompt? Currently auto-downloads.
-        # TODO: ensure this works if you use Wuggy as a module, there are issues currently.
-        warn(
-            f&#34;The official language plugin {language_plugin_name} was not found in local storage. Wuggy is currently downloading this plugin for you...&#34;)
+        try:
+            rmtree(os.path.join(Path(__file__).parents[1], &#34;plugins&#34;, &#34;language_data&#34;))
+        except FileNotFoundError as err:
+            raise FileNotFoundError(
+                &#34;The official language plugin folder is already removed.&#34;) from err
+
+    def download_language_plugin(
+            self, language_plugin_name: str, path_to_save: str, auto_download=False) -&gt; None:
+        &#34;&#34;&#34;
+        Downloads and saves given language plugin to local storage from the corresponding official file repository.
+        This method is called when you load in a language plugin automatically.
+        If you need to ensure your Wuggy script works on any machine without user confirmation, execute this method with the
+        Parameters:
+            language_plugin_name: this is the name for the official language plugin you want to download. If the language name is not officially supported, the method will throw an error.
+
+            path_to_save: absolute path to download the language plugin to.
+
+            auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
+        &#34;&#34;&#34;
+        print(path_to_save)
+        if language_plugin_name not in self.supported_official_language_plugin_names:
+            raise ValueError(&#34;This language is not officially supported by Wuggy at this moment.&#34;)
+        if not auto_download:
+            while True:
+                stdout.write(
+                    f&#34;The language plugin {language_plugin_name} was not found in local storage. Do you allow Wuggy to download this plugin? [y/n]\n&#34;)
+                choice = input().lower()
+                if (not (choice.startswith(&#34;y&#34;) or choice.startswith(&#34;n&#34;))):
+                    stdout.write(&#34;Please respond with &#39;y&#39; or &#39;n&#39;&#34;)
+                elif choice.startswith(&#34;n&#34;):
+                    raise ValueError(
+                        &#34;User declined permission for Wuggy to download necessary language plugin.&#34;)
+                else:
+                    break
+        warn(&#34;Wuggy is currently downloading this plugin for you from the official repository...&#34;)
+
         py_file_name = f&#34;{language_plugin_name}.py&#34;
         py_file = urlopen(
             f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
 
         file = open(f&#39;{path_to_save}/{py_file_name}&#39;,
                     &#39;w&#39;, encoding=&#34;utf-8&#34;)
-        # TODO: perhaps read the default data file locations from the .py file for more flexibility
         # The current setup assumes that every official Wuggy language plugin use a single data file
         for line in py_file:
             file.write(line.decode(&#34;utf-8&#34;))
         data_file_name = f&#34;{language_plugin_name}.txt&#34;
-        # TODO: throw error when fetch fails
         data_file = urlopen(
             f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{data_file_name}&#34;)
         file = open(f&#39;{path_to_save}/{data_file_name}&#39;,
@@ -752,7 +909,6 @@ class WuggyGenerator():
         Loads the default neighbor word lexicon for the currently set language plugin.
         This is currently used internally by __activate only, do not call on your own.
         &#34;&#34;&#34;
-        # TODO: check with Emmanuel whether the cutoff should actually be 1!
         cutoff = 0
         data_file = codecs.open(
             &#34;%s/%s&#34; %
@@ -816,7 +972,7 @@ class WuggyGenerator():
     def set_reference_sequence(self, sequence: str) -&gt; None:
         &#34;&#34;&#34;
         Set the reference sequence.
-        This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.
+        This is commonly used before generate methods in order to set the reference word for which pseudowords should be generated.
         &#34;&#34;&#34;
         self.reference_sequence = self.language_plugin.transform(
             sequence).representation
@@ -957,7 +1113,7 @@ class WuggyGenerator():
     def __apply_attribute_filters(self) -&gt; None:
         &#34;&#34;&#34;
         Apply all set attribute filters.
-        This is currently used by generate() internally, do not call on your own.
+        This is currently used by Wuggy internally, do not call on your own.
         &#34;&#34;&#34;
         for attribute, reference_sequence in self.attribute_filters.items():
             subchain = self.attribute_subchain if self.attribute_subchain is not None else self.bigramchain
@@ -996,31 +1152,52 @@ class WuggyGenerator():
             reference_sequence, lower, upper)
 
     @_loaded_language_plugin_required
-    def generate_classic(self, input_sequences: [str],
-                         ncandidates: int = 10, max_search_time_per_sequence: int = 10,
-                         subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
-                         match_letter_length: bool = True) -&gt; [Dict]:
+    def generate_classic(
+            self, input_sequences: [str],
+            ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10,
+            subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
+            match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
+            output_mode: str = &#34;plain&#34;, concentric_search: bool = True) -&gt; [Dict]:
         &#34;&#34;&#34;
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
-        This method returns a list of pseudoword matches, including all match and difference statistics.
+        This method returns a list of pseudoword matches, including all match and difference statistics (lexicality, ned1, old2, plain_length, deviation statistics...).
         Beware that this method always clears the sequence cache and all previously set filters.
-        .. include:: ../../documentation_examples/wuggygenerator/generate_classic.md
+        Parameters:
+            input_sequences: these are the input sequences (words) for which you want to generate pseudowords.
+
+            ncandidates_per_sequence: this is the n (maximum) amount of pseudowords you want to generate per input sequence.
+
+            max_search_time_per_sequence: this is the maximum time in seconds to search for pseudowords per input sequence.
+
+            subsyllabic_segment_overlap_ratio: this is the Fraction ratio for overlap between subsyllabic segments. The default ensures your pseudowords are very word-like but not easily identifiable as related to an existing word. If set to None, this constraint is not applied.
+
+            match_subsyllabic_segment_length: determines whether the generated pseudowords must retain the same subsyllabic segment length as the respective input sequence.
+
+            match_letter_length: determines whether the generated pseudowords must retain the same word length as the respective input sequence. This option is redundant if match_subsyllabic_segment_length is set to True.
+
+            output_mode: output mode for pseudowords, constricted by the output modes supported by the currently loaded language plugin.
+
+            concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. First, the algorithm will try to generate candidates that exactly match the transition frequencies of the reference word. Then the maximal allowed deviation in transition frequencies will increase by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.).
+        .. include:: ../../documentation/wuggygenerator/generate_classic.md
         &#34;&#34;&#34;
         pseudoword_matches = []
         for input_sequence in input_sequences:
             pseudoword_matches.extend(
                 self.__generate_classic_inner(
                     input_sequence,
-                    ncandidates,
+                    ncandidates_per_sequence,
                     max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
-                    match_letter_length))
+                    match_subsyllabic_segment_length,
+                    match_letter_length, output_mode, concentric_search))
         return pseudoword_matches
 
     def __generate_classic_inner(
-            self, input_sequence: str, ncandidates: int, max_search_time: int,
-            subsyllabic_segment_overlap_ratio: Fraction, match_letter_length: bool):
+            self, input_sequence: str, ncandidates_per_sequence: int, max_search_time: int,
+            subsyllabic_segment_overlap_ratio: Union[Fraction, None],
+            match_subsyllabic_segment_length: bool, match_letter_length: bool, output_mode: str,
+            concentric_search: bool = True):
         &#34;&#34;&#34;
         Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
         Should only be used by WuggyGenerator internally.
@@ -1033,24 +1210,28 @@ class WuggyGenerator():
             raise Exception(
                 f&#34;Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}&#34;)
         self.set_reference_sequence(input_sequence_segments)
-        self.set_output_mode(&#34;plain&#34;)
+        self.set_output_mode(output_mode)
         subchain = self.bigramchain
         self.set_all_statistics()
         starttime = time()
         pseudoword_matches = []
-        self.set_attribute_filter(&#34;segment_length&#34;)
         frequency_exponent = 1
-        # TODO: concentric search is always enabled. Keep it this way or let users
-        # disable concentric search?
-        while True:
-            self.set_frequency_filter(
-                2**frequency_exponent, 2**frequency_exponent)
-            frequency_exponent += 1
-            self.apply_frequency_filter()
+        if match_subsyllabic_segment_length:
+            self.set_attribute_filter(&#34;segment_length&#34;)
             self.__apply_attribute_filters()
-            subchain = self.frequency_subchain
+            subchain = self.attribute_subchain
+        while True:
+            if concentric_search:
+                print(f&#34;freq exponent: {frequency_exponent}&#34;)
+                self.set_frequency_filter(
+                    2**frequency_exponent, 2**frequency_exponent)
+                frequency_exponent += 1
+                self.apply_frequency_filter()
+                subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
+            # TODO: fix concentric search results stopping after e.g. 17 words with trumpet
+            # TODO: fix all configs off resulting in different pseudowords compared to legacy
             for sequence in subchain.generate():
                 if (time() - starttime) &gt;= max_search_time:
                     return pseudoword_matches
@@ -1058,30 +1239,35 @@ class WuggyGenerator():
                     continue
                 self.current_sequence = sequence
                 self.apply_statistics()
-                if match_letter_length and self.difference_statistics[&#34;plain_length&#34;] != 0:
+                if (not match_subsyllabic_segment_length and match_letter_length and self.difference_statistics[&#34;plain_length&#34;] != 0):
                     continue
-                if (self.statistics[&#34;overlap_ratio&#34;] ==
-                        subsyllabic_segment_overlap_ratio and self.statistics[&#34;lexicality&#34;] == &#34;N&#34;):
-                    self.sequence_cache.append(
-                        self.language_plugin.output_plain(sequence))
-                    match = {&#34;word&#34;: input_sequence,
-                             &#34;segments&#34;: input_sequence_segments,
-                             &#34;pseudoword&#34;: self.output_mode(sequence)}
-                    match.update({&#34;statistics&#34;: self.statistics,
-                                  &#34;difference_statistics&#34;: self.difference_statistics})
-                    pseudoword_matches.append(copy.deepcopy(match))
-                    if len(pseudoword_matches) &gt;= ncandidates:
-                        return pseudoword_matches
+                if (subsyllabic_segment_overlap_ratio is not None and self.statistics[&#34;overlap_ratio&#34;] !=
+                        subsyllabic_segment_overlap_ratio):
+                    continue
+                if self.statistics[&#34;lexicality&#34;] == &#34;W&#34;:
+                    continue
+                self.sequence_cache.append(
+                    self.language_plugin.output_plain(sequence))
+                match = {&#34;word&#34;: input_sequence,
+                         &#34;segments&#34;: input_sequence_segments,
+                         &#34;pseudoword&#34;: self.output_mode(sequence)}
+                match.update({&#34;statistics&#34;: self.statistics,
+                              &#34;difference_statistics&#34;: self.difference_statistics})
+                pseudoword_matches.append(copy.deepcopy(match))
+                if len(pseudoword_matches) &gt;= ncandidates_per_sequence:
+                    return pseudoword_matches
 
     @_loaded_language_plugin_required_generator
-    def generate(
-            self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
+    def generate_advanced(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None],
+                                                                   Generator[tuple, None, None]]:
         &#34;&#34;&#34;
-        Creates a generator which can be iterated to return generated pseudowords.
+        Creates a custom generator which can be iterated to return generated pseudowords.
+        The generator&#39;s settings, such as output statistics, should be set by you before calling this method.
         If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
-        TODO: write examples of advanced Wuggy usage with this method
+        Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
+        .. include:: ../../documentation/wuggygenerator/generate_custom.md
         &#34;&#34;&#34;
-        if clear_cache == True:
+        if clear_cache:
             self.__clear_sequence_cache()
         if self.output_mode is None:
             self.set_output_mode(&#34;plain&#34;)
@@ -1109,8 +1295,81 @@ class WuggyGenerator():
                     self.language_plugin.output_plain(sequence))
                 self.current_sequence = sequence
                 self.apply_statistics()
-                yield self.output_mode(sequence)</code></pre>
+                yield self.output_mode(sequence)
+
+    def export_classic_pseudoword_matches_to_csv(
+            self, pseudoword_matches: [Dict],
+            csv_path: str) -&gt; None:
+        &#34;&#34;&#34;
+        Helper function to export generated pseudoword matches from generate_classic to CSV.
+        The dictionairies from the matches are flattened before exporting to CSV.
+        Parameters:
+
+            pseudoword_matches: a dictionairy of pseudoword matches retrieved from generate_classic
+            csv_path: relative path to save csv file to (including the filename, e.g. ./pseudowords.csv)
+        &#34;&#34;&#34;
+        def get_csv_headers(dictionairy: dict):
+            headers = []
+
+            def flatten_nested_dict_keys(dictionairy: dict, parent_dict_key=None):
+                for key, value in dictionairy.items():
+                    key = str(key)
+                    if isinstance(value, dict):
+                        flatten_nested_dict_keys(
+                            value, (parent_dict_key + &#34;_&#34; + key if parent_dict_key else key))
+                    else:
+                        if parent_dict_key:
+                            headers.append((parent_dict_key + &#34;_&#34; + key))
+                        else:
+                            headers.append(key)
+                return headers
+            flatten_nested_dict_keys(dictionairy)
+            return headers
+
+        def get_values_from_nested_dictionairy(dictionairy: dict):
+            dict_vals = []
+
+            def flatten_nested_dict_values(dictionairy: dict):
+                for value in dictionairy.values():
+                    if isinstance(value, dict):
+                        flatten_nested_dict_values(value)
+                    else:
+                        dict_vals.append(value)
+            flatten_nested_dict_values(dictionairy)
+            return dict_vals
+
+        with open(csv_path, &#34;w&#34;, newline=&#39;&#39;) as csvfile:
+            file_writer = writer(csvfile)
+            file_writer.writerow(get_csv_headers(pseudoword_matches[0]))
+            for match in pseudoword_matches:
+                file_writer.writerow(get_values_from_nested_dictionairy(match))</code></pre>
 </details>
+<h3>Static methods</h3>
+<dl>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.remove_downloaded_language_plugins"><code class="name flex">
+<span>def <span class="ident">remove_downloaded_language_plugins</span></span>(<span>) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Removes all downloaded (official) language plugins.
+Useful to cleanup after an experiment or to remove corrupt language plugins.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def remove_downloaded_language_plugins() -&gt; None:
+    &#34;&#34;&#34;
+    Removes all downloaded (official) language plugins.
+    Useful to cleanup after an experiment or to remove corrupt language plugins.
+    &#34;&#34;&#34;
+    try:
+        rmtree(os.path.join(Path(__file__).parents[1], &#34;plugins&#34;, &#34;language_data&#34;))
+    except FileNotFoundError as err:
+        raise FileNotFoundError(
+            &#34;The official language plugin folder is already removed.&#34;) from err</code></pre>
+</details>
+</dd>
+</dl>
 <h3>Methods</h3>
 <dl>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_frequency_filter"><code class="name flex">
@@ -1213,26 +1472,154 @@ class WuggyGenerator():
     self.statistics = {}</code></pre>
 </details>
 </dd>
-<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate"><code class="name flex">
-<span>def <span class="ident">generate</span></span>(<span>self, clear_cache: bool = True) ‑> Union[Generator[str, NoneType, NoneType], Generator[tuple, NoneType, NoneType]]</span>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.download_language_plugin"><code class="name flex">
+<span>def <span class="ident">download_language_plugin</span></span>(<span>self, language_plugin_name: str, path_to_save: str, auto_download=False) ‑> NoneType</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Creates a generator which can be iterated to return generated pseudowords.
+<div class="desc"><p>Downloads and saves given language plugin to local storage from the corresponding official file repository.
+This method is called when you load in a language plugin automatically.
+If you need to ensure your Wuggy script works on any machine without user confirmation, execute this method with the</p>
+<h2 id="parameters">Parameters</h2>
+<p>language_plugin_name: this is the name for the official language plugin you want to download. If the language name is not officially supported, the method will throw an error.</p>
+<p>path_to_save: absolute path to download the language plugin to.</p>
+<p>auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def download_language_plugin(
+        self, language_plugin_name: str, path_to_save: str, auto_download=False) -&gt; None:
+    &#34;&#34;&#34;
+    Downloads and saves given language plugin to local storage from the corresponding official file repository.
+    This method is called when you load in a language plugin automatically.
+    If you need to ensure your Wuggy script works on any machine without user confirmation, execute this method with the
+    Parameters:
+        language_plugin_name: this is the name for the official language plugin you want to download. If the language name is not officially supported, the method will throw an error.
+
+        path_to_save: absolute path to download the language plugin to.
+
+        auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
+    &#34;&#34;&#34;
+    print(path_to_save)
+    if language_plugin_name not in self.supported_official_language_plugin_names:
+        raise ValueError(&#34;This language is not officially supported by Wuggy at this moment.&#34;)
+    if not auto_download:
+        while True:
+            stdout.write(
+                f&#34;The language plugin {language_plugin_name} was not found in local storage. Do you allow Wuggy to download this plugin? [y/n]\n&#34;)
+            choice = input().lower()
+            if (not (choice.startswith(&#34;y&#34;) or choice.startswith(&#34;n&#34;))):
+                stdout.write(&#34;Please respond with &#39;y&#39; or &#39;n&#39;&#34;)
+            elif choice.startswith(&#34;n&#34;):
+                raise ValueError(
+                    &#34;User declined permission for Wuggy to download necessary language plugin.&#34;)
+            else:
+                break
+    warn(&#34;Wuggy is currently downloading this plugin for you from the official repository...&#34;)
+
+    py_file_name = f&#34;{language_plugin_name}.py&#34;
+    py_file = urlopen(
+        f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
+
+    file = open(f&#39;{path_to_save}/{py_file_name}&#39;,
+                &#39;w&#39;, encoding=&#34;utf-8&#34;)
+    # The current setup assumes that every official Wuggy language plugin use a single data file
+    for line in py_file:
+        file.write(line.decode(&#34;utf-8&#34;))
+    data_file_name = f&#34;{language_plugin_name}.txt&#34;
+    data_file = urlopen(
+        f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{data_file_name}&#34;)
+    file = open(f&#39;{path_to_save}/{data_file_name}&#39;,
+                &#39;w&#39;, encoding=&#34;utf-8&#34;)
+
+    for line in data_file:
+        file.write(line.decode(&#34;utf-8&#34;))</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.export_classic_pseudoword_matches_to_csv"><code class="name flex">
+<span>def <span class="ident">export_classic_pseudoword_matches_to_csv</span></span>(<span>self, pseudoword_matches: [typing.Dict], csv_path: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Helper function to export generated pseudoword matches from generate_classic to CSV.
+The dictionairies from the matches are flattened before exporting to CSV.</p>
+<h2 id="parameters">Parameters</h2>
+<p>pseudoword_matches: a dictionairy of pseudoword matches retrieved from generate_classic
+csv_path: relative path to save csv file to (including the filename, e.g. ./pseudowords.csv)</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def export_classic_pseudoword_matches_to_csv(
+        self, pseudoword_matches: [Dict],
+        csv_path: str) -&gt; None:
+    &#34;&#34;&#34;
+    Helper function to export generated pseudoword matches from generate_classic to CSV.
+    The dictionairies from the matches are flattened before exporting to CSV.
+    Parameters:
+
+        pseudoword_matches: a dictionairy of pseudoword matches retrieved from generate_classic
+        csv_path: relative path to save csv file to (including the filename, e.g. ./pseudowords.csv)
+    &#34;&#34;&#34;
+    def get_csv_headers(dictionairy: dict):
+        headers = []
+
+        def flatten_nested_dict_keys(dictionairy: dict, parent_dict_key=None):
+            for key, value in dictionairy.items():
+                key = str(key)
+                if isinstance(value, dict):
+                    flatten_nested_dict_keys(
+                        value, (parent_dict_key + &#34;_&#34; + key if parent_dict_key else key))
+                else:
+                    if parent_dict_key:
+                        headers.append((parent_dict_key + &#34;_&#34; + key))
+                    else:
+                        headers.append(key)
+            return headers
+        flatten_nested_dict_keys(dictionairy)
+        return headers
+
+    def get_values_from_nested_dictionairy(dictionairy: dict):
+        dict_vals = []
+
+        def flatten_nested_dict_values(dictionairy: dict):
+            for value in dictionairy.values():
+                if isinstance(value, dict):
+                    flatten_nested_dict_values(value)
+                else:
+                    dict_vals.append(value)
+        flatten_nested_dict_values(dictionairy)
+        return dict_vals
+
+    with open(csv_path, &#34;w&#34;, newline=&#39;&#39;) as csvfile:
+        file_writer = writer(csvfile)
+        file_writer.writerow(get_csv_headers(pseudoword_matches[0]))
+        for match in pseudoword_matches:
+            file_writer.writerow(get_values_from_nested_dictionairy(match))</code></pre>
+</details>
+</dd>
+<dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate_advanced"><code class="name flex">
+<span>def <span class="ident">generate_advanced</span></span>(<span>self, clear_cache: bool = True) ‑> Union[Generator[str, NoneType, NoneType], Generator[tuple, NoneType, NoneType]]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a custom generator which can be iterated to return generated pseudowords.
+The generator's settings, such as output statistics, should be set by you before calling this method.
 If attributes such as "output_mode" are not set, sensible defaults are used.
-TODO: write examples of advanced Wuggy usage with this method</p></div>
+Note that this method is for advanced users and may result in unexpected results if handled incorrectly.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@_loaded_language_plugin_required_generator
-def generate(
-        self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None], Generator[tuple, None, None]]:
+def generate_advanced(self, clear_cache: bool = True) -&gt; Union[Generator[str, None, None],
+                                                               Generator[tuple, None, None]]:
     &#34;&#34;&#34;
-    Creates a generator which can be iterated to return generated pseudowords.
+    Creates a custom generator which can be iterated to return generated pseudowords.
+    The generator&#39;s settings, such as output statistics, should be set by you before calling this method.
     If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
-    TODO: write examples of advanced Wuggy usage with this method
+    Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
+    .. include:: ../../documentation/wuggygenerator/generate_custom.md
     &#34;&#34;&#34;
-    if clear_cache == True:
+    if clear_cache:
         self.__clear_sequence_cache()
     if self.output_mode is None:
         self.set_output_mode(&#34;plain&#34;)
@@ -1264,15 +1651,47 @@ def generate(
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic"><code class="name flex">
-<span>def <span class="ident">generate_classic</span></span>(<span>self, input_sequences: [<class 'str'>], ncandidates: int = 10, max_search_time_per_sequence: int = 10, subsyllabic_segment_overlap_ratio: fractions.Fraction = Fraction(2, 3), match_letter_length: bool = True) ‑> [typing.Dict]</span>
+<span>def <span class="ident">generate_classic</span></span>(<span>self, input_sequences: [<class 'str'>], ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10, subsyllabic_segment_overlap_ratio: Union[fractions.Fraction, NoneType] = Fraction(2, 3), match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True, output_mode: str = 'plain', concentric_search: bool = True) ‑> [typing.Dict]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
 The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
-This method returns a list of pseudoword matches, including all match and difference statistics.
+This method returns a list of pseudoword matches, including all match and difference statistics (lexicality, ned1, old2, plain_length, deviation statistics&hellip;).
 Beware that this method always clears the sequence cache and all previously set filters.</p>
-<h1 id="examples">Examples</h1>
-<h2 id="printing-out-pseudowords">Printing out pseudowords</h2>
+<h2 id="parameters">Parameters</h2>
+<p>input_sequences: these are the input sequences (words) for which you want to generate pseudowords.</p>
+<p>ncandidates_per_sequence: this is the n (maximum) amount of pseudowords you want to generate per input sequence.</p>
+<p>max_search_time_per_sequence: this is the maximum time in seconds to search for pseudowords per input sequence.</p>
+<p>subsyllabic_segment_overlap_ratio: this is the Fraction ratio for overlap between subsyllabic segments. The default ensures your pseudowords are very word-like but not easily identifiable as related to an existing word. If set to None, this constraint is not applied.</p>
+<p>match_subsyllabic_segment_length: determines whether the generated pseudowords must retain the same subsyllabic segment length as the respective input sequence.</p>
+<p>match_letter_length: determines whether the generated pseudowords must retain the same word length as the respective input sequence. This option is redundant if match_subsyllabic_segment_length is set to True.</p>
+<p>output_mode: output mode for pseudowords, constricted by the output modes supported by the currently loaded language plugin.</p>
+<p>concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. First, the algorithm will try to generate candidates that exactly match the transition frequencies of the reference word. Then the maximal allowed deviation in transition frequencies will increase by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.).</p>
+<h1 id="generate-classic-examples">Generate Classic Examples</h1>
+<h2 id="in-what-format-are-pseudowords-returned">In what format are pseudowords returned?</h2>
+<p>Pseudowords are returned in a dictionairy format in a verbose format, containing details such as statistics. Below is an example return value for a pseudoword generated for <code>car</code>.</p>
+<pre><code class="language-python">{
+    &quot;word&quot;: &quot;car&quot;,
+    &quot;segments&quot;: &quot;car&quot;,
+    &quot;pseudoword&quot;: &quot;cag&quot;,
+    &quot;statistics&quot;: {
+        &quot;lexicality&quot;: &quot;N&quot;,
+        &quot;ned1&quot;: 24,
+        &quot;old20&quot;: 1.0,
+        &quot;overlap&quot;: 2,
+        &quot;overlap_ratio&quot;: Fraction(2, 3),
+        &quot;plain_length&quot;: 1,
+        &quot;transition_frequencies&quot;: {0: 304, 1: 92, 2: 22, 3: 80},
+    },
+    &quot;difference_statistics&quot;: {
+        &quot;ned1&quot;: -4,
+        &quot;old20&quot;: 0.050000000000000044,
+        &quot;plain_length&quot;: 0,
+        &quot;transition_frequencies&quot;: {0: 0, 1: 0, 2: 8, 3: -11},
+    },
+}
+</code></pre>
+<h2 id="generating-pseudowords-default-settings">Generating pseudowords (default settings)</h2>
 <p>In this example, we will generate pseudowords for the English words <code>car</code> and <code>bicycle</code>. We will print these pseudowords to the console.</p>
 <pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
 
@@ -1281,32 +1700,75 @@ g.load(&quot;orthographic_english&quot;)
 for match in g.generate_classic([&quot;car&quot;, &quot;bicycle&quot;]):
     print(match[&quot;pseudoword&quot;])
 </code></pre>
-<p>The code above first loads the <code>orthographic_english</code> language plugin. After this, the <code>generate_classic</code> method is called with a list of reference sequences for which we want to generate pseudowords. The method returns a list of pseudoword matches. These matches consist of dictionairies with many details about the match, such as relevant statistics. Since we are only interested in the generated pseudowords, we print the value assigned to the key <code>pseudoword</code>.</p></div>
+<p>The code above first loads the <code>orthographic_english</code> language plugin. After this, the <code>generate_classic</code> method is called with a list of reference sequences for which we want to generate pseudowords. The method returns a list of pseudoword matches. These matches consist of dictionairies with many details about the match, such as relevant statistics. Since we are only interested in the generated pseudowords, we print the value assigned to the key <code>pseudoword</code>. </p>
+<h2 id="generating-pseudowords-custom-settings">Generating pseudowords (custom settings)</h2>
+<p>In this example, we will generate pseudowords for the English words <code>car</code> and <code>bicycle</code>, this time using some custom settings. The <code>generate_classic</code> method takes several optional arguments which can be used to change the output of the generator. The defaults are usually great for generating useful pseudowords, so this example will only change two parameters. </p>
+<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+
+g = WuggyGenerator()
+g.load(&quot;orthographic_english&quot;)
+for match in g.generate_classic(
+    [&quot;car&quot;, &quot;bicycle&quot;],
+    ncandidates_per_sequence=30, max_search_time_per_sequence=25):
+    print(match[&quot;pseudoword&quot;])
+</code></pre>
+<p>The code above will ensure that, per sequence in the input list, a maximum of 30 candidates will be generated. By default, Wuggy only has 10 seconds to find this amount of candidates per sequence. For this reason, we can set the <code>max_search_time_per_sequence</code> to a higher amount to ensure that 30 sequences can be generated in time.</p>
+<h2 id="generating-pseudowords-and-exporting-to-csv">Generating pseudowords and exporting to CSV</h2>
+<p>Since Wuggy is a Python library, its output can be easily used by other modules to perform actions such as exporting pseudowords to CSV. This can be done manually, although Wuggy includes a built-in helper method to easily export classic pseudoword matches to a CSV file:</p>
+<pre><code class="language-python">from csv import DictWriter
+
+from wuggy.generators.wuggygenerator import WuggyGenerator
+
+g = WuggyGenerator()
+g.load(&quot;orthographic_english&quot;)
+pseudoword_matches = g.generate_classic([&quot;car&quot;])
+g.export_classic_pseudoword_matches_to_csv(pseudoword_matches, &quot;./pseudowords.csv&quot;)
+</code></pre>
+<p>By using this method, the nested dictionairy will be flattened so that the resulting CSV can be easily interpreted by your software of choice.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@_loaded_language_plugin_required
-def generate_classic(self, input_sequences: [str],
-                     ncandidates: int = 10, max_search_time_per_sequence: int = 10,
-                     subsyllabic_segment_overlap_ratio: Fraction = Fraction(2, 3),
-                     match_letter_length: bool = True) -&gt; [Dict]:
+def generate_classic(
+        self, input_sequences: [str],
+        ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10,
+        subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
+        match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
+        output_mode: str = &#34;plain&#34;, concentric_search: bool = True) -&gt; [Dict]:
     &#34;&#34;&#34;
     This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
     The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
-    This method returns a list of pseudoword matches, including all match and difference statistics.
+    This method returns a list of pseudoword matches, including all match and difference statistics (lexicality, ned1, old2, plain_length, deviation statistics...).
     Beware that this method always clears the sequence cache and all previously set filters.
-    .. include:: ../../documentation_examples/wuggygenerator/generate_classic.md
+    Parameters:
+        input_sequences: these are the input sequences (words) for which you want to generate pseudowords.
+
+        ncandidates_per_sequence: this is the n (maximum) amount of pseudowords you want to generate per input sequence.
+
+        max_search_time_per_sequence: this is the maximum time in seconds to search for pseudowords per input sequence.
+
+        subsyllabic_segment_overlap_ratio: this is the Fraction ratio for overlap between subsyllabic segments. The default ensures your pseudowords are very word-like but not easily identifiable as related to an existing word. If set to None, this constraint is not applied.
+
+        match_subsyllabic_segment_length: determines whether the generated pseudowords must retain the same subsyllabic segment length as the respective input sequence.
+
+        match_letter_length: determines whether the generated pseudowords must retain the same word length as the respective input sequence. This option is redundant if match_subsyllabic_segment_length is set to True.
+
+        output_mode: output mode for pseudowords, constricted by the output modes supported by the currently loaded language plugin.
+
+        concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. First, the algorithm will try to generate candidates that exactly match the transition frequencies of the reference word. Then the maximal allowed deviation in transition frequencies will increase by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.).
+    .. include:: ../../documentation/wuggygenerator/generate_classic.md
     &#34;&#34;&#34;
     pseudoword_matches = []
     for input_sequence in input_sequences:
         pseudoword_matches.extend(
             self.__generate_classic_inner(
                 input_sequence,
-                ncandidates,
+                ncandidates_per_sequence,
                 max_search_time_per_sequence,
                 subsyllabic_segment_overlap_ratio,
-                match_letter_length))
+                match_subsyllabic_segment_length,
+                match_letter_length, output_mode, concentric_search))
     return pseudoword_matches</code></pre>
 </details>
 </dd>
@@ -1362,7 +1824,10 @@ def generate_classic(self, input_sequences: [str],
 <span>def <span class="ident">load</span></span>(<span>self, language_plugin_name: str, local_language_plugin: <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="../plugins/baselanguageplugin.html#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a> = None) ‑> NoneType</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Loads in a language plugin, if available, and stores the corresponding bigramchains.</p></div>
+<div class="desc"><p>Loads in a language plugin, if available, and stores the corresponding bigramchains.</p>
+<h2 id="parameters">Parameters</h2>
+<p>language_plugin_name: must be the exact string of an official language plugin (see self.supported_official_language_plugin_names). If you are loading in a local plugin, the name can be anything as long as it does not conflict with an already loaded plugin name.</p>
+<p>local_language_plugin: must be a child class of BaseLanguagePlugin: see BaseLanguagePlugin for more information on how to create a custom language plugin.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1371,8 +1836,13 @@ def generate_classic(self, input_sequences: [str],
          local_language_plugin: BaseLanguagePlugin = None) -&gt; None:
     &#34;&#34;&#34;
     Loads in a language plugin, if available, and stores the corresponding bigramchains.
+    Parameters:
+        language_plugin_name: must be the exact string of an official language plugin (see self.supported_official_language_plugin_names). If you are loading in a local plugin, the name can be anything as long as it does not conflict with an already loaded plugin name.
+
+        local_language_plugin: must be a child class of BaseLanguagePlugin: see BaseLanguagePlugin for more information on how to create a custom language plugin.
     &#34;&#34;&#34;
     if local_language_plugin:
+        # TODO: if someone does not pass a class INSTANCE, they get TypeError: &lt;class &#39;type&#39;&gt; is a built-in class, this is a vague error and probably should be abstracted
         self.language_plugin_data_path = os.path.dirname(
             inspect.getfile(local_language_plugin.__class__))
         self.language_plugin_name = language_plugin_name
@@ -1381,21 +1851,23 @@ def generate_classic(self, input_sequences: [str],
     if local_language_plugin is None:
         if language_plugin_name not in self.supported_official_language_plugin_names:
             raise ValueError(
-                f&#34;This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin&#34;)
+                &#34;This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin&#34;)
         self.language_plugin_name = language_plugin_name
         language_plugins_folder_dirname = os.path.join(
             Path(__file__).parents[1], &#34;plugins&#34;, &#34;language_data&#34;)
+        # TODO: move these os path checks under download method, only if autodownload is off
         if not os.path.exists(language_plugins_folder_dirname):
             os.makedirs(language_plugins_folder_dirname)
         self.language_plugin_data_path = os.path.join(
             language_plugins_folder_dirname, language_plugin_name)
         if not os.path.exists(self.language_plugin_data_path):
             os.makedirs(self.language_plugin_data_path)
-            self.__download_language_plugin(
+            self.download_language_plugin(
                 language_plugin_name, self.language_plugin_data_path)
+        # Official language plugins MUST have the class name &#34;OfficialLanguagePlugin&#34;!
         language_plugin = importlib.import_module(
             f&#34;.plugins.language_data.{language_plugin_name}.{language_plugin_name}&#34;,
-            &#34;wuggy&#34;).LanguagePlugin()
+            &#34;wuggy&#34;).OfficialLanguagePlugin()
 
     if language_plugin_name not in self.bigramchains:
         default_data_path = os.path.join(
@@ -1526,7 +1998,7 @@ Stricter search (small values for lower and upper) result in faster word generat
 </code></dt>
 <dd>
 <div class="desc"><p>Set the reference sequence.
-This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.</p></div>
+This is commonly used before generate methods in order to set the reference word for which pseudowords should be generated.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1535,7 +2007,7 @@ This is commonly used before generate() in order to set the reference word for w
 def set_reference_sequence(self, sequence: str) -&gt; None:
     &#34;&#34;&#34;
     Set the reference sequence.
-    This is commonly used before generate() in order to set the reference word for which pseudowords should be generated.
+    This is commonly used before generate methods in order to set the reference word for which pseudowords should be generated.
     &#34;&#34;&#34;
     self.reference_sequence = self.language_plugin.transform(
         sequence).representation
@@ -1612,12 +2084,15 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_attribute_filters" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_attribute_filters">clear_attribute_filters</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_frequency_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_frequency_filter">clear_frequency_filter</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics">clear_statistics</a></code></li>
-<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.generate" href="#wuggy.generators.wuggygenerator.WuggyGenerator.generate">generate</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.download_language_plugin" href="#wuggy.generators.wuggygenerator.WuggyGenerator.download_language_plugin">download_language_plugin</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.export_classic_pseudoword_matches_to_csv" href="#wuggy.generators.wuggygenerator.WuggyGenerator.export_classic_pseudoword_matches_to_csv">export_classic_pseudoword_matches_to_csv</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.generate_advanced" href="#wuggy.generators.wuggygenerator.WuggyGenerator.generate_advanced">generate_advanced</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic" href="#wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic">generate_classic</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies" href="#wuggy.generators.wuggygenerator.WuggyGenerator.get_limit_frequencies">get_limit_frequencies</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes" href="#wuggy.generators.wuggygenerator.WuggyGenerator.list_output_modes">list_output_modes</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.load" href="#wuggy.generators.wuggygenerator.WuggyGenerator.load">load</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.lookup_reference_segments" href="#wuggy.generators.wuggygenerator.WuggyGenerator.lookup_reference_segments">lookup_reference_segments</a></code></li>
+<li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.remove_downloaded_language_plugins" href="#wuggy.generators.wuggygenerator.WuggyGenerator.remove_downloaded_language_plugins">remove_downloaded_language_plugins</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_all_statistics" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_all_statistics">set_all_statistics</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filter" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filter">set_attribute_filter</a></code></li>
 <li><code><a title="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filters" href="#wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filters">set_attribute_filters</a></code></li>

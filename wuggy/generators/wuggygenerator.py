@@ -4,6 +4,7 @@ import importlib
 import inspect
 import os
 from collections import defaultdict, namedtuple
+from csv import writer
 from fractions import Fraction
 from functools import wraps
 from pathlib import Path
@@ -92,9 +93,11 @@ class WuggyGenerator():
         Loads in a language plugin, if available, and stores the corresponding bigramchains.
         Parameters:
             language_plugin_name: must be the exact string of an official language plugin (see self.supported_official_language_plugin_names). If you are loading in a local plugin, the name can be anything as long as it does not conflict with an already loaded plugin name.
+
             local_language_plugin: must be a child class of BaseLanguagePlugin: see BaseLanguagePlugin for more information on how to create a custom language plugin.
         """
         if local_language_plugin:
+            # TODO: if someone does not pass a class INSTANCE, they get TypeError: <class 'type'> is a built-in class, this is a vague error and probably should be abstracted
             self.language_plugin_data_path = os.path.dirname(
                 inspect.getfile(local_language_plugin.__class__))
             self.language_plugin_name = language_plugin_name
@@ -107,6 +110,7 @@ class WuggyGenerator():
             self.language_plugin_name = language_plugin_name
             language_plugins_folder_dirname = os.path.join(
                 Path(__file__).parents[1], "plugins", "language_data")
+            # TODO: move these os path checks under download method, only if autodownload is off
             if not os.path.exists(language_plugins_folder_dirname):
                 os.makedirs(language_plugins_folder_dirname)
             self.language_plugin_data_path = os.path.join(
@@ -115,9 +119,10 @@ class WuggyGenerator():
                 os.makedirs(self.language_plugin_data_path)
                 self.download_language_plugin(
                     language_plugin_name, self.language_plugin_data_path)
+            # Official language plugins MUST have the class name "OfficialLanguagePlugin"!
             language_plugin = importlib.import_module(
                 f".plugins.language_data.{language_plugin_name}.{language_plugin_name}",
-                "wuggy").LanguagePlugin()
+                "wuggy").OfficialLanguagePlugin()
 
         if language_plugin_name not in self.bigramchains:
             default_data_path = os.path.join(
@@ -150,7 +155,9 @@ class WuggyGenerator():
         If you need to ensure your Wuggy script works on any machine without user confirmation, execute this method with the
         Parameters:
             language_plugin_name: this is the name for the official language plugin you want to download. If the language name is not officially supported, the method will throw an error.
-            path_to_save: absolute path to download the language plugin to
+
+            path_to_save: absolute path to download the language plugin to.
+
             auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
         """
         print(path_to_save)
@@ -159,7 +166,7 @@ class WuggyGenerator():
         if not auto_download:
             while True:
                 stdout.write(
-                    "The language plugin {language_plugin_name} was not found in local storage. Do you allow Wuggy to download this plugin? [y/n]\n")
+                    f"The language plugin {language_plugin_name} was not found in local storage. Do you allow Wuggy to download this plugin? [y/n]\n")
                 choice = input().lower()
                 if (not (choice.startswith("y") or choice.startswith("n"))):
                     stdout.write("Please respond with 'y' or 'n'")
@@ -486,12 +493,19 @@ class WuggyGenerator():
         Beware that this method always clears the sequence cache and all previously set filters.
         Parameters:
             input_sequences: these are the input sequences (words) for which you want to generate pseudowords.
+
             ncandidates_per_sequence: this is the n (maximum) amount of pseudowords you want to generate per input sequence.
+
             max_search_time_per_sequence: this is the maximum time in seconds to search for pseudowords per input sequence.
+
             subsyllabic_segment_overlap_ratio: this is the Fraction ratio for overlap between subsyllabic segments. The default ensures your pseudowords are very word-like but not easily identifiable as related to an existing word. If set to None, this constraint is not applied.
+
             match_subsyllabic_segment_length: determines whether the generated pseudowords must retain the same subsyllabic segment length as the respective input sequence.
+
             match_letter_length: determines whether the generated pseudowords must retain the same word length as the respective input sequence. This option is redundant if match_subsyllabic_segment_length is set to True.
+
             output_mode: output mode for pseudowords, constricted by the output modes supported by the currently loaded language plugin.
+
             concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. First, the algorithm will try to generate candidates that exactly match the transition frequencies of the reference word. Then the maximal allowed deviation in transition frequencies will increase by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.).
         .. include:: ../../documentation/wuggygenerator/generate_classic.md
         """
@@ -536,6 +550,7 @@ class WuggyGenerator():
             subchain = self.attribute_subchain
         while True:
             if concentric_search:
+                print(f"freq exponent: {frequency_exponent}")
                 self.set_frequency_filter(
                     2**frequency_exponent, 2**frequency_exponent)
                 frequency_exponent += 1
@@ -571,8 +586,8 @@ class WuggyGenerator():
                     return pseudoword_matches
 
     @_loaded_language_plugin_required_generator
-    def generate_custom(self, clear_cache: bool = True) -> Union[Generator[str, None, None],
-                                                                 Generator[tuple, None, None]]:
+    def generate_advanced(self, clear_cache: bool = True) -> Union[Generator[str, None, None],
+                                                                   Generator[tuple, None, None]]:
         """
         Creates a custom generator which can be iterated to return generated pseudowords.
         The generator's settings, such as output statistics, should be set by you before calling this method.
@@ -609,3 +624,50 @@ class WuggyGenerator():
                 self.current_sequence = sequence
                 self.apply_statistics()
                 yield self.output_mode(sequence)
+
+    def export_classic_pseudoword_matches_to_csv(
+            self, pseudoword_matches: [Dict],
+            csv_path: str) -> None:
+        """
+        Helper function to export generated pseudoword matches from generate_classic to CSV.
+        The dictionairies from the matches are flattened before exporting to CSV.
+        Parameters:
+
+            pseudoword_matches: a dictionairy of pseudoword matches retrieved from generate_classic
+            csv_path: relative path to save csv file to (including the filename, e.g. ./pseudowords.csv)
+        """
+        def get_csv_headers(dictionairy: dict):
+            headers = []
+
+            def flatten_nested_dict_keys(dictionairy: dict, parent_dict_key=None):
+                for key, value in dictionairy.items():
+                    key = str(key)
+                    if isinstance(value, dict):
+                        flatten_nested_dict_keys(
+                            value, (parent_dict_key + "_" + key if parent_dict_key else key))
+                    else:
+                        if parent_dict_key:
+                            headers.append((parent_dict_key + "_" + key))
+                        else:
+                            headers.append(key)
+                return headers
+            flatten_nested_dict_keys(dictionairy)
+            return headers
+
+        def get_values_from_nested_dictionairy(dictionairy: dict):
+            dict_vals = []
+
+            def flatten_nested_dict_values(dictionairy: dict):
+                for value in dictionairy.values():
+                    if isinstance(value, dict):
+                        flatten_nested_dict_values(value)
+                    else:
+                        dict_vals.append(value)
+            flatten_nested_dict_values(dictionairy)
+            return dict_vals
+
+        with open(csv_path, "w", newline='') as csvfile:
+            file_writer = writer(csvfile)
+            file_writer.writerow(get_csv_headers(pseudoword_matches[0]))
+            for match in pseudoword_matches:
+                file_writer.writerow(get_values_from_nested_dictionairy(match))

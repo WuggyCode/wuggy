@@ -122,7 +122,8 @@ class BigramChain(defaultdict):
         if type(reference_sequence[0]) == self.language_plugin.Segment:
             for key, nextkeys in self.items():
                 try:
-                    if key.value.__getattribute__(attribute) == reference_sequence[key.position].__getattribute__(attribute):
+                    if key.value.__getattribute__(attribute) == reference_sequence[
+                            key.position].__getattribute__(attribute):
                         result[key] = self[key]
                 except IndexError:
                     pass
@@ -150,7 +151,7 @@ class BigramChain(defaultdict):
             return result.clean(maxpos)
 
     def generate(self, startkeys=None):
-        if startkeys == None:
+        if startkeys is None:
             startkeys = self.startkeys
         startkeys = list(startkeys.items())
         random.shuffle(startkeys)

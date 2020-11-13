@@ -22,7 +22,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r dev-requirements.txt
-          pdoc --html --output-dir build ./wuggy --template-dir ./documentation/templates
+          pdoc --html --output-dir build_documentation ./wuggy --template-dir ./documentation/templates
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3

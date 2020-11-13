@@ -1,3 +1,4 @@
+""".. include:: ../../documentation/baselanguageplugin/baselanguageplugin.md"""
 from collections import namedtuple
 from fractions import Fraction
 

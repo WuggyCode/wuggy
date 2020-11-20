@@ -633,14 +633,14 @@ class WuggyGenerator():
         The dictionairies from the matches are flattened before exporting to CSV.
         Parameters:
 
-            pseudoword_matches: a dictionairy of pseudoword matches retrieved from generate_classic
+            pseudoword_matches: a dictionary of pseudoword matches retrieved from generate_classic
             csv_path: relative path to save csv file to (including the filename, e.g. ./pseudowords.csv)
         """
-        def get_csv_headers(dictionairy: dict):
+        def get_csv_headers(dictionary: dict):
             headers = []
 
-            def flatten_nested_dict_keys(dictionairy: dict, parent_dict_key=None):
-                for key, value in dictionairy.items():
+            def flatten_nested_dict_keys(dictionary: dict, parent_dict_key=None):
+                for key, value in dictionary.items():
                     key = str(key)
                     if isinstance(value, dict):
                         flatten_nested_dict_keys(
@@ -651,23 +651,23 @@ class WuggyGenerator():
                         else:
                             headers.append(key)
                 return headers
-            flatten_nested_dict_keys(dictionairy)
+            flatten_nested_dict_keys(dictionary)
             return headers
 
-        def get_values_from_nested_dictionairy(dictionairy: dict):
+        def get_values_from_nested_dictionary(dictionary: dict):
             dict_vals = []
 
-            def flatten_nested_dict_values(dictionairy: dict):
-                for value in dictionairy.values():
+            def flatten_nested_dict_values(dictionary: dict):
+                for value in dictionary.values():
                     if isinstance(value, dict):
                         flatten_nested_dict_values(value)
                     else:
                         dict_vals.append(value)
-            flatten_nested_dict_values(dictionairy)
+            flatten_nested_dict_values(dictionary)
             return dict_vals
 
         with open(csv_path, "w", newline='') as csvfile:
             file_writer = writer(csvfile)
             file_writer.writerow(get_csv_headers(pseudoword_matches[0]))
             for match in pseudoword_matches:
-                file_writer.writerow(get_values_from_nested_dictionairy(match))
+                file_writer.writerow(get_values_from_nested_dictionary(match))

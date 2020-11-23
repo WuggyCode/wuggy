@@ -32,10 +32,10 @@ class BigramChain(defaultdict):
                 input_sequence, frequency))
             n = len(sequence.representation)
             if frequency >= cutoff and random.randint(1, 100) <= size:
-                for i in range(n):
-                    key = Link(i, sequence.representation[i])
-                    if i+1 < n:
-                        next_key = Link(i+1, sequence.representation[i+1])
+                for j in range(n):
+                    key = Link(j, sequence.representation[j])
+                    if j+1 < n:
+                        next_key = Link(j+1, sequence.representation[j+1])
                         self[key][next_key] = self[key].get(
                             next_key, 0)+sequence.frequency
             else:

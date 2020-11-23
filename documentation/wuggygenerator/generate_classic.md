@@ -2,7 +2,7 @@
 
 ## In what format are pseudowords returned?
 
-Pseudowords are returned in a dictionairy format in a verbose format, containing details such as statistics. Below is an example return value for a pseudoword generated for `car`.
+Pseudowords are returned in a dictionary format in a verbose format, containing details such as statistics. Below is an example return value for a pseudoword generated for `car`.
 
 ```python
 {
@@ -75,4 +75,4 @@ pseudoword_matches = g.generate_classic(["car"])
 g.export_classic_pseudoword_matches_to_csv(pseudoword_matches, "./pseudowords.csv")
 ```
 
-By using this method, the nested dictionairy will be flattened so that the resulting CSV can be easily interpreted by your software of choice.
+By using this method, the nested dictionary will be flattened so that the resulting CSV can be easily interpreted by your software of choice.

@@ -540,7 +540,6 @@ class WuggyGenerator():
         self.set_reference_sequence(input_sequence_segments)
         self.set_output_mode(output_mode)
         subchain = self.bigramchain
-        self.set_all_statistics()
         starttime = time()
         pseudoword_matches = []
         frequency_exponent = 1
@@ -550,7 +549,6 @@ class WuggyGenerator():
             subchain = self.attribute_subchain
         while True:
             if concentric_search:
-                print(f"freq exponent: {frequency_exponent}")
                 self.set_frequency_filter(
                     2**frequency_exponent, 2**frequency_exponent)
                 frequency_exponent += 1
@@ -558,9 +556,10 @@ class WuggyGenerator():
                 subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
-            # TODO: fix concentric search results stopping after e.g. 17 words with trumpet
-            # TODO: fix all configs off resulting in different pseudowords compared to legacy
             for sequence in subchain.generate():
+                # Mandatory statistics before finding a suitable match
+                self.clear_statistics()
+                self.set_statistics(["overlap_ratio", "plain_length", "lexicality"])
                 if (time() - starttime) >= max_search_time:
                     return pseudoword_matches
                 if self.language_plugin.output_plain(sequence) in self.sequence_cache:
@@ -574,6 +573,9 @@ class WuggyGenerator():
                     continue
                 if self.statistics["lexicality"] == "W":
                     continue
+                # (Re)apply all statistics only if match is found: else search becomes unnecessarily slow
+                self.set_all_statistics()
+                self.apply_statistics()
                 self.sequence_cache.append(
                     self.language_plugin.output_plain(sequence))
                 match = {"word": input_sequence,
@@ -581,6 +583,7 @@ class WuggyGenerator():
                          "pseudoword": self.output_mode(sequence)}
                 match.update({"statistics": self.statistics,
                               "difference_statistics": self.difference_statistics})
+
                 pseudoword_matches.append(copy.deepcopy(match))
                 if len(pseudoword_matches) >= ncandidates_per_sequence:
                     return pseudoword_matches
@@ -633,14 +636,14 @@ class WuggyGenerator():
         The dictionairies from the matches are flattened before exporting to CSV.
         Parameters:
 
-            pseudoword_matches: a dictionairy of pseudoword matches retrieved from generate_classic
+            pseudoword_matches: a dictionary of pseudoword matches retrieved from generate_classic
             csv_path: relative path to save csv file to (including the filename, e.g. ./pseudowords.csv)
         """
-        def get_csv_headers(dictionairy: dict):
+        def get_csv_headers(dictionary: dict):
             headers = []
 
-            def flatten_nested_dict_keys(dictionairy: dict, parent_dict_key=None):
-                for key, value in dictionairy.items():
+            def flatten_nested_dict_keys(dictionary: dict, parent_dict_key=None):
+                for key, value in dictionary.items():
                     key = str(key)
                     if isinstance(value, dict):
                         flatten_nested_dict_keys(
@@ -651,23 +654,23 @@ class WuggyGenerator():
                         else:
                             headers.append(key)
                 return headers
-            flatten_nested_dict_keys(dictionairy)
+            flatten_nested_dict_keys(dictionary)
             return headers
 
-        def get_values_from_nested_dictionairy(dictionairy: dict):
+        def get_values_from_nested_dictionary(dictionary: dict):
             dict_vals = []
 
-            def flatten_nested_dict_values(dictionairy: dict):
-                for value in dictionairy.values():
+            def flatten_nested_dict_values(dictionary: dict):
+                for value in dictionary.values():
                     if isinstance(value, dict):
                         flatten_nested_dict_values(value)
                     else:
                         dict_vals.append(value)
-            flatten_nested_dict_values(dictionairy)
+            flatten_nested_dict_values(dictionary)
             return dict_vals
 
         with open(csv_path, "w", newline='') as csvfile:
             file_writer = writer(csvfile)
             file_writer.writerow(get_csv_headers(pseudoword_matches[0]))
             for match in pseudoword_matches:
-                file_writer.writerow(get_values_from_nested_dictionairy(match))
+                file_writer.writerow(get_values_from_nested_dictionary(match))

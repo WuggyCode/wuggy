@@ -160,7 +160,6 @@ class WuggyGenerator():
 
             auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
         """
-        print(path_to_save)
         if language_plugin_name not in self.supported_official_language_plugin_names:
             raise ValueError("This language is not officially supported by Wuggy at this moment.")
         if not auto_download:

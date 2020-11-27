@@ -160,7 +160,6 @@ class WuggyGenerator():
 
             auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
         """
-        print(path_to_save)
         if language_plugin_name not in self.supported_official_language_plugin_names:
             raise ValueError("This language is not officially supported by Wuggy at this moment.")
         if not auto_download:
@@ -278,7 +277,7 @@ class WuggyGenerator():
         """
         Look up a given reference (word) from the currently active lookup lexicon.
         Returns the segments of the found word, if the word is not found it returns None.
-        Commonly used to error check if a given word exists before passing it as a reference sequence.
+        This should be used before setting a word as a reference sequence.
         """
         return self.lookup_lexicon.get(reference, None)
 
@@ -596,7 +595,7 @@ class WuggyGenerator():
         The generator's settings, such as output statistics, should be set by you before calling this method.
         If attributes such as \"output_mode\" are not set, sensible defaults are used.
         Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
-        .. include:: ../../documentation/wuggygenerator/generate_custom.md
+        .. include:: ../../documentation/wuggygenerator/generate_advanced.md
         """
         if clear_cache:
             self.__clear_sequence_cache()

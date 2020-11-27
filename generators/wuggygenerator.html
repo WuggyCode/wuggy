@@ -188,7 +188,6 @@ class WuggyGenerator():
 
             auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
         &#34;&#34;&#34;
-        print(path_to_save)
         if language_plugin_name not in self.supported_official_language_plugin_names:
             raise ValueError(&#34;This language is not officially supported by Wuggy at this moment.&#34;)
         if not auto_download:
@@ -306,7 +305,7 @@ class WuggyGenerator():
         &#34;&#34;&#34;
         Look up a given reference (word) from the currently active lookup lexicon.
         Returns the segments of the found word, if the word is not found it returns None.
-        Commonly used to error check if a given word exists before passing it as a reference sequence.
+        This should be used before setting a word as a reference sequence.
         &#34;&#34;&#34;
         return self.lookup_lexicon.get(reference, None)
 
@@ -624,7 +623,7 @@ class WuggyGenerator():
         The generator&#39;s settings, such as output statistics, should be set by you before calling this method.
         If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
         Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
-        .. include:: ../../documentation/wuggygenerator/generate_custom.md
+        .. include:: ../../documentation/wuggygenerator/generate_advanced.md
         &#34;&#34;&#34;
         if clear_cache:
             self.__clear_sequence_cache()
@@ -835,7 +834,6 @@ class WuggyGenerator():
 
             auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
         &#34;&#34;&#34;
-        print(path_to_save)
         if language_plugin_name not in self.supported_official_language_plugin_names:
             raise ValueError(&#34;This language is not officially supported by Wuggy at this moment.&#34;)
         if not auto_download:
@@ -953,7 +951,7 @@ class WuggyGenerator():
         &#34;&#34;&#34;
         Look up a given reference (word) from the currently active lookup lexicon.
         Returns the segments of the found word, if the word is not found it returns None.
-        Commonly used to error check if a given word exists before passing it as a reference sequence.
+        This should be used before setting a word as a reference sequence.
         &#34;&#34;&#34;
         return self.lookup_lexicon.get(reference, None)
 
@@ -1271,7 +1269,7 @@ class WuggyGenerator():
         The generator&#39;s settings, such as output statistics, should be set by you before calling this method.
         If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
         Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
-        .. include:: ../../documentation/wuggygenerator/generate_custom.md
+        .. include:: ../../documentation/wuggygenerator/generate_advanced.md
         &#34;&#34;&#34;
         if clear_cache:
             self.__clear_sequence_cache()
@@ -1506,7 +1504,6 @@ If you need to ensure your Wuggy script works on any machine without user confir
 
         auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
     &#34;&#34;&#34;
-    print(path_to_save)
     if language_plugin_name not in self.supported_official_language_plugin_names:
         raise ValueError(&#34;This language is not officially supported by Wuggy at this moment.&#34;)
     if not auto_download:
@@ -1610,7 +1607,65 @@ csv_path: relative path to save csv file to (including the filename, e.g. ./pseu
 <div class="desc"><p>Creates a custom generator which can be iterated to return generated pseudowords.
 The generator's settings, such as output statistics, should be set by you before calling this method.
 If attributes such as "output_mode" are not set, sensible defaults are used.
-Note that this method is for advanced users and may result in unexpected results if handled incorrectly.</p></div>
+Note that this method is for advanced users and may result in unexpected results if handled incorrectly.</p>
+<h1 id="generate-advanced-examples">Generate Advanced Examples</h1>
+<h2 id="in-what-format-are-pseudowords-returned">In what format are pseudowords returned?</h2>
+<p>Using the advanced generate method, Wuggy will return a generator which you can iterate over to generate pseudowords, e.g:</p>
+<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+
+g = WuggyGenerator()
+g.load(&quot;orthographic_english&quot;)
+g.set_reference_sequence(&quot;balloon&quot;)
+for sequence in g.generate_advanced(clear_cache=False):
+    print(sequence)
+</code></pre>
+<p>(note that this example returns rather useless pseudowords since there are no restrictions set)</p>
+<h2 id="generating-pseudowords-with-sensible-settings">Generating Pseudowords (with sensible settings)</h2>
+<p>Generating pseudowords using this method requires good knowledge of Wuggy in order to generate pseudowords which, for example, closely resemble the origin reference word.</p>
+<p>The following example uses advanced generation to set a number of restrictions on generated pseudowords.</p>
+<ol>
+<li>Each origin word will generate a maximum of 10 pseudowords</li>
+<li>Each pseudoword must be a non-word</li>
+<li>Each pseudoword must overlap 2/3 subsyllabic segments</li>
+<li>The frequency filter is increased if not enough matches are found within a given band (this is concentric search)</li>
+<li>Sensible attribute filters are enforced</li>
+</ol>
+<pre><code class="language-python">from fractions import Fraction
+
+from wuggy.generators.wuggygenerator import WuggyGenerator
+
+words = [&quot;trumpet&quot;, &quot;car&quot;]
+g = WuggyGenerator()
+g.load(&quot;orthographic_english&quot;)
+ncandidates = 10
+for word in words:
+    g.set_reference_sequence(g.lookup_reference_segments(word))
+    g.set_attribute_filter('sequence_length')
+    g.set_attribute_filter('segment_length')
+    g.set_statistic('overlap_ratio')
+    g.set_statistic('plain_length')
+    g.set_statistic('transition_frequencies')
+    g.set_statistic('lexicality')
+    g.set_statistic('ned1')
+    g.set_output_mode('syllabic')
+    j = 0
+    for i in range(1, 10, 1):
+        g.set_frequency_filter(2**i, 2**i)
+        for sequence in g.generate_advanced(clear_cache=False):
+            match = False
+            if (g.statistics['overlap_ratio'] == Fraction(2, 3) and
+                    g.statistics['lexicality'] == &quot;N&quot;):
+                match = True
+            if match == True:
+                print(sequence)
+                j = j+1
+                if j &gt; ncandidates:
+                    break
+        if j &gt; ncandidates:
+            break
+</code></pre>
+<p>Note how using <code>generate_advanced</code> requires setting many parameters and candidate check logic yourself.
+Make sure that <code>generate_classic</code> does not suit your needs before using this method, as its low level nature makes it easy to return pseudowords which do not fit your needs.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1623,7 +1678,7 @@ def generate_advanced(self, clear_cache: bool = True) -&gt; Union[Generator[str,
     The generator&#39;s settings, such as output statistics, should be set by you before calling this method.
     If attributes such as \&#34;output_mode\&#34; are not set, sensible defaults are used.
     Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
-    .. include:: ../../documentation/wuggygenerator/generate_custom.md
+    .. include:: ../../documentation/wuggygenerator/generate_advanced.md
     &#34;&#34;&#34;
     if clear_cache:
         self.__clear_sequence_cache()
@@ -1893,7 +1948,7 @@ def generate_classic(
 <dd>
 <div class="desc"><p>Look up a given reference (word) from the currently active lookup lexicon.
 Returns the segments of the found word, if the word is not found it returns None.
-Commonly used to error check if a given word exists before passing it as a reference sequence.</p></div>
+This should be used before setting a word as a reference sequence.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1902,7 +1957,7 @@ Commonly used to error check if a given word exists before passing it as a refer
     &#34;&#34;&#34;
     Look up a given reference (word) from the currently active lookup lexicon.
     Returns the segments of the found word, if the word is not found it returns None.
-    Commonly used to error check if a given word exists before passing it as a reference sequence.
+    This should be used before setting a word as a reference sequence.
     &#34;&#34;&#34;
     return self.lookup_lexicon.get(reference, None)</code></pre>
 </details>
@@ -2071,10 +2126,13 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 </article>
 <nav id="sidebar">
 <header>
-<h2><a href="https://zenulous.github.io/wuggy/">Wuggy Documentation</a></h2>
+<h2><a href="/">Wuggy Documentation</a></h2>
 <a class="homelink" rel="home" title="Wuggy Home" href="https://github.com/Zenulous/wuggy/">
 <img src="http://crr.ugent.be/wordpress/wp-content/uploads/2010/04/wug.jpg" alt="Wuggy Logo">
 </a>
+<h1>Quickstarts</h2>
+<h3><a href="/generators/wuggygenerator.html#generate-classic-examples" title="generate-pseudowords">Easily generate pseudowords</a></h3>
+<h3><a href="/plugins/baselanguageplugin.html#creating-a-custom-language-plugin" title="create-language-plugin">Create a custom language plugin</a></h3>
 </header>
 <h1>Index</h1>
 <div class="toc">

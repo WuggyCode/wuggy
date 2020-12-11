@@ -6,3 +6,4 @@ setuptools==50.3.0
 wheel==0.35.1
 twine==3.2.0
 pdoc3==0.9.1
+statsmodels==0.12.1

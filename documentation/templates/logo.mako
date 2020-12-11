@@ -1,7 +1,7 @@
 <header>
 <h2><a href="/wuggy">Wuggy Documentation</a></h2>
 <a class="homelink" rel="home" title="Wuggy Home" href="https://github.com/Zenulous/wuggy/">
-<img src="http://crr.ugent.be/wordpress/wp-content/uploads/2010/04/wug.jpg" alt="Wuggy Logo">
+<img src="https://raw.githubusercontent.com/Zenulous/wuggy/master/assets/wuggyIcon.jpg" alt="Wuggy Logo">
 </a>
 <h1>Quickstarts</h1>
 <p><a href="/wuggy/generators/wuggygenerator.html#generate-classic-examples" title="generate-pseudowords">Easily generate pseudowords</a></p>

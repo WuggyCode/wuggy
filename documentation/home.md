@@ -36,13 +36,11 @@ This version of Wuggy is a Python library for a modern audience accustomed to us
 
 If using Wuggy in a Python environment sounds scary, there is no need to fear. This version of Wuggy comes with a [`classic` generation method](generators/wuggygenerator.html#generate-classic-examples), with defaults set exactly as they were in the legacy Wuggy version.
 
-**Frequently Asked Questions**
-
-I just want a few pseudowords for my stimuli. Do I really need to install Wuggy? Can’t you just give me some?
+**I just want a few pseudowords for my stimuli. Do I really need to install Wuggy? Can’t you just give me some?**
 
 Downloading and installing Wuggy is painless and, with some Python experience, you'll have pseudowords within a few minutes.
 
-Ok, but what kind of pseudowords can I expect from Wuggy?
+**Ok, but what kind of pseudowords can I expect from Wuggy?**
 
 The list below shows Wuggy’s output using default settings for some English words with an increasing number of syllables. For each word, we show 5 generated pseudowords.
 
@@ -98,3 +96,11 @@ The list below shows Wuggy’s output using default settings for some English wo
 | congratulations | concrulonations |
 | congratulations | concrulorations |
 | congratulations | concruponations |
+
+**My language files are corrupted and/or outdated! What can I do?**
+
+Wuggy includes a [`remove_downloaded_language_plugins` method in the `WuggyGenerator` class](generators/wuggygenerator.html#wuggy.generators.wuggygenerator.WuggyGenerator.remove_downloaded_language_plugins) which you can call to automatically redownload
+
+**I am unable to download language files! What can I do?**
+
+First ensure your language is supported by Wuggy by examining the `supported_official_language_plugin_names` property of the [`WuggyGenerator` class](generators/wuggygenerator.html). Then, if you are sure your language name is supported, make sure that you are on the latest version of Wuggy. If this is not the case, please upgrade.

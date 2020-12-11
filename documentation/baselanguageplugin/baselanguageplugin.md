@@ -8,7 +8,7 @@ BaseLanguagePlugin is the Base class used for all official Wuggy language plugin
 In this example, we will start off creating a custom language plugin. Create an empty Python file called `your_project_file.py` and try to run the following code within this file:
 
 ```python
-from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load("orthographic_english")
@@ -27,11 +27,11 @@ your_project_file.py
     -- orthographic_english.txt
 ```
 
-2. The `orthographic_english.py` file needs to be modified slightly to accomodate for the different folder structure, since the plugin is used outside of the official plugin folder. Go into this file and replace the line `from ...baselanguageplugin import BaseLanguagePlugin` with `from wuggy.plugins.baselanguageplugin import BaseLanguagePlugin`.
+1. The `orthographic_english.py` file needs to be modified slightly to accomodate for the different folder structure, since the plugin is used outside of the official plugin folder. Go into this file and replace the line `from ...baselanguageplugin import BaseLanguagePlugin` with `from wuggy import BaseLanguagePlugin`.
 
-3. Now we are getting somewhere: you already have a functional local language plugin which you can import. Let's ensure that you have followed the steps properly. Replace the contents of `your_project_file.py` with:
+2. Now we are getting somewhere: you already have a functional local language plugin which you can import. Let's ensure that you have followed the steps properly. Replace the contents of `your_project_file.py` with:
 ```python
-from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy import WuggyGenerator
 
 from my_custom_plugin.orthographic_english import LanguagePlugin
 

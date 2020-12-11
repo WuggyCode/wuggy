@@ -1,7 +1,7 @@
 # Wuggy: A multilingual pseudoword generator
 
 <p align="center">
-<img src=http://crr.ugent.be/wordpress/wp-content/uploads/2010/04/wug.jpg alt="Wuggy Logo">
+<img src=https://raw.githubusercontent.com/Zenulous/wuggy/master/assets/wuggyIcon.jpg alt="Wuggy Logo">
 </p>
 
 This repository is a work-in-progress and will be finalized in a couple of months.

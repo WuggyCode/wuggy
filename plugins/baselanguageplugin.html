@@ -27,7 +27,7 @@
 <h2 id="creating-a-custom-language-plugin">Creating a custom language plugin</h2>
 <h3 id="based-on-an-official-language-plugin">Based on an official language plugin</h3>
 <p>In this example, we will start off creating a custom language plugin. Create an empty Python file called <code>your_project_file.py</code> and try to run the following code within this file:</p>
-<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+<pre><code class="language-python">from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load(&quot;orthographic_english&quot;)
@@ -45,13 +45,13 @@ for w in g.generate_classic([&quot;wuggy&quot;]):
 </code></pre>
 <ol>
 <li>
-<p>The <code>orthographic_english.py</code> file needs to be modified slightly to accomodate for the different folder structure, since the plugin is used outside of the official plugin folder. Go into this file and replace the line <code>from &hellip;baselanguageplugin import <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a></code> with <code>from <a title="wuggy.plugins.baselanguageplugin" href="#wuggy.plugins.baselanguageplugin">wuggy.plugins.baselanguageplugin</a> import <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a></code>.</p>
+<p>The <code>orthographic_english.py</code> file needs to be modified slightly to accomodate for the different folder structure, since the plugin is used outside of the official plugin folder. Go into this file and replace the line <code>from &hellip;baselanguageplugin import <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a></code> with <code>from <a title="wuggy" href="../index.html">wuggy</a> import <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a></code>.</p>
 </li>
 <li>
 <p>Now we are getting somewhere: you already have a functional local language plugin which you can import. Let's ensure that you have followed the steps properly. Replace the contents of <code>your_project_file.py</code> with:</p>
 </li>
 </ol>
-<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+<pre><code class="language-python">from wuggy import WuggyGenerator
 
 from my_custom_plugin.orthographic_english import LanguagePlugin
 
@@ -789,11 +789,12 @@ def statistic_transition_frequencies(self, generator, generated_sequence):
 <header>
 <h2><a href="/wuggy">Wuggy Documentation</a></h2>
 <a class="homelink" rel="home" title="Wuggy Home" href="https://github.com/Zenulous/wuggy/">
-<img src="http://crr.ugent.be/wordpress/wp-content/uploads/2010/04/wug.jpg" alt="Wuggy Logo">
+<img src="https://raw.githubusercontent.com/Zenulous/wuggy/master/assets/wuggyIcon.jpg" alt="Wuggy Logo">
 </a>
-<h1>Quickstarts</h2>
-<h3><a href="/wuggy/generators/wuggygenerator.html#generate-classic-examples" title="generate-pseudowords">Easily generate pseudowords</a></h3>
-<h3><a href="/wuggy/plugins/baselanguageplugin.html#creating-a-custom-language-plugin" title="create-language-plugin">Create a custom language plugin</a></h3>
+<h1>Quickstarts</h1>
+<p><a href="/wuggy/generators/wuggygenerator.html#generate-classic-examples" title="generate-pseudowords">Easily generate pseudowords</a></p>
+<p><a href="/wuggy/plugins/baselanguageplugin.html#creating-a-custom-language-plugin" title="create-language-plugin">Create a custom language plugin</a></p>
+<p><a href="/wuggy/evaluators/index.html" title="evaluate-pseudowords">Evaluate pseudowords</a></p>
 </header>
 <h1>Index</h1>
 <div class="toc">

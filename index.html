@@ -48,10 +48,9 @@ As you get familiar with Wuggy and realize its broad potential, you may want to 
 <p><strong>How does this version of Wuggy differ and improve upon the legacy version?</strong></p>
 <p>This version of Wuggy is a Python library for a modern audience accustomed to using Python. It allows you to use the well known Wuggy algorithm within existing or new coding projects without the overhead of manually copying pseudowords, as has been the case in the past. For the more daring and experience Wuggy users, Wuggy is more open than before, allowing you to create <a href="plugins/baselanguageplugin.html">your own language plugin</a>.</p>
 <p>If using Wuggy in a Python environment sounds scary, there is no need to fear. This version of Wuggy comes with a <a href="generators/wuggygenerator.html#generate-classic-examples"><code>classic</code> generation method</a>, with defaults set exactly as they were in the legacy Wuggy version.</p>
-<p><strong>Frequently Asked Questions</strong></p>
-<p>I just want a few pseudowords for my stimuli. Do I really need to install Wuggy? Can’t you just give me some?</p>
+<p><strong>I just want a few pseudowords for my stimuli. Do I really need to install Wuggy? Can’t you just give me some?</strong></p>
 <p>Downloading and installing Wuggy is painless and, with some Python experience, you'll have pseudowords within a few minutes.</p>
-<p>Ok, but what kind of pseudowords can I expect from Wuggy?</p>
+<p><strong>Ok, but what kind of pseudowords can I expect from Wuggy?</strong></p>
 <p>The list below shows Wuggy’s output using default settings for some English words with an increasing number of syllables. For each word, we show 5 generated pseudowords.</p>
 <table>
 <thead>
@@ -263,16 +262,27 @@ As you get familiar with Wuggy and realize its broad potential, you may want to 
 </tr>
 </tbody>
 </table>
+<p><strong>My language files are corrupted and/or outdated! What can I do?</strong></p>
+<p>Wuggy includes a <a href="generators/wuggygenerator.html#wuggy.generators.wuggygenerator.WuggyGenerator.remove_downloaded_language_plugins"><code>remove_downloaded_language_plugins</code> method in the <code>WuggyGenerator</code> class</a> which you can call to automatically redownload</p>
+<p><strong>I am unable to download language files! What can I do?</strong></p>
+<p>First ensure your language is supported by Wuggy by examining the <code>supported_official_language_plugin_names</code> property of the <a href="generators/wuggygenerator.html"><code>WuggyGenerator</code> class</a>. Then, if you are sure your language name is supported, make sure that you are on the latest version of Wuggy. If this is not the case, please upgrade.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;.. include:: ../documentation/home.md&#34;</code></pre>
+<pre><code class="python">&#34;.. include:: ../documentation/home.md&#34;
+from wuggy.evaluators.ld1nn import ld1nn
+from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy.plugins.baselanguageplugin import BaseLanguagePlugin</code></pre>
 </details>
 </section>
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
+<dt><code class="name"><a title="wuggy.evaluators" href="evaluators/index.html">wuggy.evaluators</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt><code class="name"><a title="wuggy.generators" href="generators/index.html">wuggy.generators</a></code></dt>
 <dd>
 <div class="desc"></div>
@@ -298,11 +308,12 @@ As you get familiar with Wuggy and realize its broad potential, you may want to 
 <header>
 <h2><a href="/wuggy">Wuggy Documentation</a></h2>
 <a class="homelink" rel="home" title="Wuggy Home" href="https://github.com/Zenulous/wuggy/">
-<img src="http://crr.ugent.be/wordpress/wp-content/uploads/2010/04/wug.jpg" alt="Wuggy Logo">
+<img src="https://raw.githubusercontent.com/Zenulous/wuggy/master/assets/wuggyIcon.jpg" alt="Wuggy Logo">
 </a>
-<h1>Quickstarts</h2>
-<h3><a href="/wuggy/generators/wuggygenerator.html#generate-classic-examples" title="generate-pseudowords">Easily generate pseudowords</a></h3>
-<h3><a href="/wuggy/plugins/baselanguageplugin.html#creating-a-custom-language-plugin" title="create-language-plugin">Create a custom language plugin</a></h3>
+<h1>Quickstarts</h1>
+<p><a href="/wuggy/generators/wuggygenerator.html#generate-classic-examples" title="generate-pseudowords">Easily generate pseudowords</a></p>
+<p><a href="/wuggy/plugins/baselanguageplugin.html#creating-a-custom-language-plugin" title="create-language-plugin">Create a custom language plugin</a></p>
+<p><a href="/wuggy/evaluators/index.html" title="evaluate-pseudowords">Evaluate pseudowords</a></p>
 </header>
 <h1>Index</h1>
 <div class="toc">
@@ -322,6 +333,7 @@ As you get familiar with Wuggy and realize its broad potential, you may want to 
 <ul id="index">
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
+<li><code><a title="wuggy.evaluators" href="evaluators/index.html">wuggy.evaluators</a></code></li>
 <li><code><a title="wuggy.generators" href="generators/index.html">wuggy.generators</a></code></li>
 <li><code><a title="wuggy.plugins" href="plugins/index.html">wuggy.plugins</a></code></li>
 <li><code><a title="wuggy.utilities" href="utilities/index.html">wuggy.utilities</a></code></li>

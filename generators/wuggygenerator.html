@@ -1611,7 +1611,7 @@ Note that this method is for advanced users and may result in unexpected results
 <h1 id="generate-advanced-examples">Generate Advanced Examples</h1>
 <h2 id="in-what-format-are-pseudowords-returned">In what format are pseudowords returned?</h2>
 <p>Using the advanced generate method, Wuggy will return a generator which you can iterate over to generate pseudowords, e.g:</p>
-<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+<pre><code class="language-python">from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load(&quot;orthographic_english&quot;)
@@ -1632,7 +1632,7 @@ for sequence in g.generate_advanced(clear_cache=False):
 </ol>
 <pre><code class="language-python">from fractions import Fraction
 
-from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy import WuggyGenerator
 
 words = [&quot;trumpet&quot;, &quot;car&quot;]
 g = WuggyGenerator()
@@ -1754,7 +1754,7 @@ Beware that this method always clears the sequence cache and all previously set 
 </code></pre>
 <h2 id="generating-pseudowords-default-settings">Generating pseudowords (default settings)</h2>
 <p>In this example, we will generate pseudowords for the English words <code>car</code> and <code>bicycle</code>. We will print these pseudowords to the console.</p>
-<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+<pre><code class="language-python">from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load(&quot;orthographic_english&quot;)
@@ -1764,7 +1764,7 @@ for match in g.generate_classic([&quot;car&quot;, &quot;bicycle&quot;]):
 <p>The code above first loads the <code>orthographic_english</code> language plugin. After this, the <code>generate_classic</code> method is called with a list of reference sequences for which we want to generate pseudowords. The method returns a list of pseudoword matches. These matches consist of dictionairies with many details about the match, such as relevant statistics. Since we are only interested in the generated pseudowords, we print the value assigned to the key <code>pseudoword</code>. </p>
 <h2 id="generating-pseudowords-custom-settings">Generating pseudowords (custom settings)</h2>
 <p>In this example, we will generate pseudowords for the English words <code>car</code> and <code>bicycle</code>, this time using some custom settings. The <code>generate_classic</code> method takes several optional arguments which can be used to change the output of the generator. The defaults are usually great for generating useful pseudowords, so this example will only change two parameters. </p>
-<pre><code class="language-python">from wuggy.generators.wuggygenerator import WuggyGenerator
+<pre><code class="language-python">from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load(&quot;orthographic_english&quot;)
@@ -2128,11 +2128,12 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 <header>
 <h2><a href="/wuggy">Wuggy Documentation</a></h2>
 <a class="homelink" rel="home" title="Wuggy Home" href="https://github.com/Zenulous/wuggy/">
-<img src="http://crr.ugent.be/wordpress/wp-content/uploads/2010/04/wug.jpg" alt="Wuggy Logo">
+<img src="https://raw.githubusercontent.com/Zenulous/wuggy/master/assets/wuggyIcon.jpg" alt="Wuggy Logo">
 </a>
-<h1>Quickstarts</h2>
-<h3><a href="/wuggy/generators/wuggygenerator.html#generate-classic-examples" title="generate-pseudowords">Easily generate pseudowords</a></h3>
-<h3><a href="/wuggy/plugins/baselanguageplugin.html#creating-a-custom-language-plugin" title="create-language-plugin">Create a custom language plugin</a></h3>
+<h1>Quickstarts</h1>
+<p><a href="/wuggy/generators/wuggygenerator.html#generate-classic-examples" title="generate-pseudowords">Easily generate pseudowords</a></p>
+<p><a href="/wuggy/plugins/baselanguageplugin.html#creating-a-custom-language-plugin" title="create-language-plugin">Create a custom language plugin</a></p>
+<p><a href="/wuggy/evaluators/index.html" title="evaluate-pseudowords">Evaluate pseudowords</a></p>
 </header>
 <h1>Index</h1>
 <div class="toc">

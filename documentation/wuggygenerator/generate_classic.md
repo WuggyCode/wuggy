@@ -33,7 +33,7 @@ Pseudowords are returned in a dictionary format in a verbose format, containing 
 In this example, we will generate pseudowords for the English words `car` and `bicycle`. We will print these pseudowords to the console.
 
 ```python
-from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load("orthographic_english")
@@ -48,7 +48,7 @@ The code above first loads the `orthographic_english` language plugin. After thi
 In this example, we will generate pseudowords for the English words `car` and `bicycle`, this time using some custom settings. The `generate_classic` method takes several optional arguments which can be used to change the output of the generator. The defaults are usually great for generating useful pseudowords, so this example will only change two parameters. 
 
 ```python
-from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load("orthographic_english")

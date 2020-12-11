@@ -1,4 +1,4 @@
-from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load("orthographic_english")

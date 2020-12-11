@@ -5,7 +5,7 @@
 Using the advanced generate method, Wuggy will return a generator which you can iterate over to generate pseudowords, e.g:
 
 ```python
-from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy import WuggyGenerator
 
 g = WuggyGenerator()
 g.load("orthographic_english")
@@ -30,7 +30,7 @@ The following example uses advanced generation to set a number of restrictions o
 ```python
 from fractions import Fraction
 
-from wuggy.generators.wuggygenerator import WuggyGenerator
+from wuggy import WuggyGenerator
 
 words = ["trumpet", "car"]
 g = WuggyGenerator()

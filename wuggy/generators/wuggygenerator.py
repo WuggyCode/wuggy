@@ -174,7 +174,9 @@ class WuggyGenerator():
                         "User declined permission for Wuggy to download necessary language plugin.")
                 else:
                     break
-        warn("Wuggy is currently downloading this plugin for you from the official repository...")
+
+        print(
+            f"Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...")
 
         py_file_name = f"{language_plugin_name}.py"
         py_file = urlopen(
@@ -193,6 +195,8 @@ class WuggyGenerator():
 
         for line in data_file:
             file.write(line.decode("utf-8"))
+
+        print(f"Wuggy has finished downloading {language_plugin_name}.")
 
     def __activate(self, name: str) -> None:
         """

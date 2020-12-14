@@ -66,7 +66,7 @@ class WuggyGenerator():
             "phonetic_english_cmu",
             "phonetic_french",
             "phonetic_italian"]
-        self.__official_language_plugin_repository_url = "https://raw.githubusercontent.com/Zenulous/wuggy_language_plugin_data/master/"
+        self.__official_language_plugin_repository_url = "https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master/"
         self.attribute_subchain = None
         self.frequency_subchain = None
         self.reference_sequence = None

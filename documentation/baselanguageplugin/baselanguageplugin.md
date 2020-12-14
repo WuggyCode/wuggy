@@ -18,7 +18,7 @@ for w in g.generate_classic(["wuggy"]):
 
 Uh oh! You should be getting an error that `wuggy` is not a word in the `orthographic_english` lexicon. Let's assume `wuggy` is an important slang word which is essential for our research. We need to customize the `orthographic_english` lexicon and add the word `wuggy`. 
 
-1. To keep things simple, let's redownload the `orthographic_english` plugin to our local machine in the folder your project is currently in. First, create a new folder in the same directory as the Python file you just tested the script in. Call it `modified_orthographic_english`. Visit the [official Wuggy language data repository](https://github.com/Zenulous/wuggy_language_plugin_data) and download the plugin from here and save both the `.py` and `.txt` files in the root of the `modified_orthographic_english` folder. Your project folder structure should now look like this:
+1. To keep things simple, let's redownload the `orthographic_english` plugin to our local machine in the folder your project is currently in. First, create a new folder in the same directory as the Python file you just tested the script in. Call it `modified_orthographic_english`. Visit the [official Wuggy language data repository](https://github.com/WuggyCode/wuggy_language_plugin_data) and download the plugin from here and save both the `.py` and `.txt` files in the root of the `modified_orthographic_english` folder. Your project folder structure should now look like this:
 
 ```
 your_project_file.py

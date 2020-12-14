@@ -14,7 +14,7 @@ setuptools.setup(
     description="Wuggy: A multilingual pseudoword generator",
     long_description="Wuggy: A multilingual pseudoword generator implemented as a Python library",
     long_description_content_type="text/markdown",
-    url="https://github.com/Zenulous/wuggy",
+    url="https://github.com/WuggyCode/wuggy",
     packages=setuptools.find_packages(),
     install_requires=requirements,
     classifiers=[

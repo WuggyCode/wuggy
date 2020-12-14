@@ -110,15 +110,11 @@ class WuggyGenerator():
             self.language_plugin_name = language_plugin_name
             language_plugins_folder_dirname = os.path.join(
                 Path(__file__).parents[1], "plugins", "language_data")
-            # TODO: move these os path checks under download method, only if autodownload is off
-            if not os.path.exists(language_plugins_folder_dirname):
-                os.makedirs(language_plugins_folder_dirname)
             self.language_plugin_data_path = os.path.join(
                 language_plugins_folder_dirname, language_plugin_name)
             if not os.path.exists(self.language_plugin_data_path):
-                os.makedirs(self.language_plugin_data_path)
                 self.download_language_plugin(
-                    language_plugin_name, self.language_plugin_data_path)
+                    language_plugin_name)
             # Official language plugins MUST have the class name "OfficialLanguagePlugin"!
             language_plugin = importlib.import_module(
                 f".plugins.language_data.{language_plugin_name}.{language_plugin_name}",
@@ -148,20 +144,19 @@ class WuggyGenerator():
                 "The official language plugin folder is already removed.") from err
 
     def download_language_plugin(
-            self, language_plugin_name: str, path_to_save: str, auto_download=False) -> None:
+            self, language_plugin_name: str, auto_download=False) -> None:
         """
         Downloads and saves given language plugin to local storage from the corresponding official file repository.
-        This method is called when you load in a language plugin automatically.
-        If you need to ensure your Wuggy script works on any machine without user confirmation, execute this method with the
+        This method is called when you load in a language plugin automatically and you are missing the plugin locally.
+        If you need to ensure your Wuggy script works on any machine without user confirmation, execute this method with the auto_download flag set to True before using the load method.
         Parameters:
             language_plugin_name: this is the name for the official language plugin you want to download. If the language name is not officially supported, the method will throw an error.
-
-            path_to_save: absolute path to download the language plugin to.
 
             auto_download: determines whether Wuggy provides the user with a prompt to confirm downloading a language plugin.
         """
         if language_plugin_name not in self.supported_official_language_plugin_names:
             raise ValueError("This language is not officially supported by Wuggy at this moment.")
+
         if not auto_download:
             while True:
                 stdout.write(
@@ -175,6 +170,16 @@ class WuggyGenerator():
                 else:
                     break
 
+        language_plugins_folder_dirname = os.path.join(
+            Path(__file__).parents[1], "plugins", "language_data")
+        if not os.path.exists(language_plugins_folder_dirname):
+            os.makedirs(language_plugins_folder_dirname)
+
+        self.language_plugin_data_path = os.path.join(
+            language_plugins_folder_dirname, language_plugin_name)
+        if not os.path.exists(self.language_plugin_data_path):
+            os.makedirs(self.language_plugin_data_path)
+
         print(
             f"Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...")
 
@@ -182,7 +187,7 @@ class WuggyGenerator():
         py_file = urlopen(
             f"{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}")
 
-        file = open(f'{path_to_save}/{py_file_name}',
+        file = open(f'{self.language_plugin_data_path}/{py_file_name}',
                     'w', encoding="utf-8")
         # The current setup assumes that every official Wuggy language plugin use a single data file
         for line in py_file:
@@ -190,7 +195,7 @@ class WuggyGenerator():
         data_file_name = f"{language_plugin_name}.txt"
         data_file = urlopen(
             f"{self.__official_language_plugin_repository_url}/{language_plugin_name}/{data_file_name}")
-        file = open(f'{path_to_save}/{data_file_name}',
+        file = open(f'{self.language_plugin_data_path}/{data_file_name}',
                     'w', encoding="utf-8")
 
         for line in data_file:
@@ -314,26 +319,6 @@ class WuggyGenerator():
             function = eval("self.language_plugin.statistic_%s" % (name))
             self.reference_statistics[name] = function(
                 self, self.reference_sequence)
-
-    def get_limit_frequencies(self, fields):
-        # TODO: docstring and parameter type hint
-        limits = []
-        if tuple(fields) not in self.bigramchain.limit_frequencies:
-            self.bigramchain.build_limit_frequencies(fields)
-        for i in range(0, len(self.reference_sequence) - 1):
-            subkey_a = (i, tuple(
-                [self.reference_sequence[i].__getattribute__(field) for field in fields]))
-            subkey_b = (i + 1,
-                        tuple(
-                            [self.reference_sequence[i + 1].__getattribute__(field)
-                             for field in fields]))
-            subkey = (subkey_a, subkey_b)
-            try:
-                limits.append(
-                    self.bigramchain.limit_frequencies[tuple(fields)][subkey])
-            except BaseException:
-                limits.append([{max: 0, min: 0}])
-        return limits
 
     def __get_statistics(self) -> [str]:
         """
@@ -638,8 +623,8 @@ class WuggyGenerator():
         Helper function to export generated pseudoword matches from generate_classic to CSV.
         The dictionairies from the matches are flattened before exporting to CSV.
         Parameters:
-
             pseudoword_matches: a dictionary of pseudoword matches retrieved from generate_classic
+
             csv_path: relative path to save csv file to (including the filename, e.g. ./pseudowords.csv)
         """
         def get_csv_headers(dictionary: dict):

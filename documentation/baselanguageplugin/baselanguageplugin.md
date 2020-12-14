@@ -46,7 +46,3 @@ This code passes a custom language plugin name to wuggy, together with an instan
 4. To modify the language lexicon, browse into `orthographic_english.txt`. Each word is written in the format `WORD{tab}WORD_IN_SYLLABLES{tab}OCCURRENCE_PER_MILLION_WORDS` (the three word elements are split using a single tab: you must adhere to this for each line in the lexicon). To add `wuggy` to the lexicon, paste `wuggy	wug-gy	0.01` at the end of the document (we assume that wuggy occurs 0.01 times per million words).
 
 Now, when you execute `orthographic_english.py` again, you should be generating pseudowords for the word `wuggy`!
-
-### From scratch
-
-TODO: a new example will be here soon.

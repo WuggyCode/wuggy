@@ -19,8 +19,10 @@ def ld1nn(word_sample: [str],
     For more information about LD1NN, see DOI: 10.1075/ml.6.1.02keu
 
     Parameters:
-        word_sample: a list of real words. Make sure this list contains at least all words which all unique words in nonword_sample were based on. This list must contain the same amount of items as nonword_sample. 
+        word_sample: a list of real words. Make sure this list contains at least all words which all unique words in nonword_sample were based on. This list must contain the same amount of items as nonword_sample.
+
         nonword_sample: a list of nonwords words. This list must contain the same amount of items as word_sample.
+        
         word_as_reference_level: set the word as reference level. If set to true, the odds returned by LD1NN represent how much likelier it is for a stimulus predicted as a word to be a word than a stimulus with a nonword prediction. If set to true, the vice versa is calculated.
     .. include:: ../../documentation/evaluators/ld1nn.md
     """

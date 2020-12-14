@@ -202,7 +202,9 @@ class WuggyGenerator():
                         &#34;User declined permission for Wuggy to download necessary language plugin.&#34;)
                 else:
                     break
-        warn(&#34;Wuggy is currently downloading this plugin for you from the official repository...&#34;)
+
+        print(
+            f&#34;Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...&#34;)
 
         py_file_name = f&#34;{language_plugin_name}.py&#34;
         py_file = urlopen(
@@ -221,6 +223,8 @@ class WuggyGenerator():
 
         for line in data_file:
             file.write(line.decode(&#34;utf-8&#34;))
+
+        print(f&#34;Wuggy has finished downloading {language_plugin_name}.&#34;)
 
     def __activate(self, name: str) -&gt; None:
         &#34;&#34;&#34;
@@ -848,7 +852,9 @@ class WuggyGenerator():
                         &#34;User declined permission for Wuggy to download necessary language plugin.&#34;)
                 else:
                     break
-        warn(&#34;Wuggy is currently downloading this plugin for you from the official repository...&#34;)
+
+        print(
+            f&#34;Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...&#34;)
 
         py_file_name = f&#34;{language_plugin_name}.py&#34;
         py_file = urlopen(
@@ -867,6 +873,8 @@ class WuggyGenerator():
 
         for line in data_file:
             file.write(line.decode(&#34;utf-8&#34;))
+
+        print(f&#34;Wuggy has finished downloading {language_plugin_name}.&#34;)
 
     def __activate(self, name: str) -&gt; None:
         &#34;&#34;&#34;
@@ -1518,7 +1526,9 @@ If you need to ensure your Wuggy script works on any machine without user confir
                     &#34;User declined permission for Wuggy to download necessary language plugin.&#34;)
             else:
                 break
-    warn(&#34;Wuggy is currently downloading this plugin for you from the official repository...&#34;)
+
+    print(
+        f&#34;Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...&#34;)
 
     py_file_name = f&#34;{language_plugin_name}.py&#34;
     py_file = urlopen(
@@ -1536,7 +1546,9 @@ If you need to ensure your Wuggy script works on any machine without user confir
                 &#39;w&#39;, encoding=&#34;utf-8&#34;)
 
     for line in data_file:
-        file.write(line.decode(&#34;utf-8&#34;))</code></pre>
+        file.write(line.decode(&#34;utf-8&#34;))
+
+    print(f&#34;Wuggy has finished downloading {language_plugin_name}.&#34;)</code></pre>
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.export_classic_pseudoword_matches_to_csv"><code class="name flex">

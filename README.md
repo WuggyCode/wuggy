@@ -23,6 +23,8 @@ Documentation is generated using `pdoc`. To update documentation locally , run `
 
 ### Uploading a new version to PyPi
 
+Prerequisite: ensure that `setup.py` contains the right information, including the desired version number!
+
 1. `python setup.py sdist bdist_wheel`
 2. `twine upload dist/*` (ensure dist folder does not contain old versions!) (you must enter your PyPi credentials here)
    (for staging/testing, use `twine upload --repository testpypi dist/*` and `pip install --extra-index-url https://testpypi.python.org/pypi Wuggy`)

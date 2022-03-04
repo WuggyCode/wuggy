@@ -4,11 +4,13 @@
 <img src=https://raw.githubusercontent.com/WuggyCode/wuggy/master/assets/wuggyIcon.jpg alt="Wuggy Logo">
 </p>
 
-This repository is a work-in-progress and will be finalized in a couple of months.
+Wuggy is a pseudoword generator particularly geared towards making nonwords for psycholinguistic experiments. Wuggy makes pseudowords in, but not limited to, Basque, Dutch, English, French, German, Serbian (Cyrillic and Latin), Spanish, and Vietnamese.
 
-# Installation
+# Installation & Guide
 
-## Development Environment
+Please refer to the [Wuggy Site](https://wuggycode.github.io/wuggy/) for installation and usage instructions.
+
+# Development Environment
 
 1. To clone the repository, use `git clone --recurse-submodules https://github.com/WuggyCode/wuggy`.
    If you do not clone the submodules, you will not download the language plugin files from the beginning.

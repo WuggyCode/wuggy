@@ -66,7 +66,7 @@ class WuggyGenerator():
             "phonetic_english_cmu",
             "phonetic_french",
             "phonetic_italian"]
-        self.__official_language_plugin_repository_url = "https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master/"
+        self.__official_language_plugin_repository_url = "https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master"
         self.attribute_subchain = None
         self.frequency_subchain = None
         self.reference_sequence = None
@@ -182,8 +182,9 @@ class WuggyGenerator():
 
         print(
             f"Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...")
-
+        
         py_file_name = f"{language_plugin_name}.py"
+        print(f"{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}")
         py_file = urlopen(
             f"{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}")
 

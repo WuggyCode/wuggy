@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.1" />
+<meta name="generator" content="pdoc 0.10.0" />
 <title>wuggy.generators.wuggygenerator API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -94,7 +94,7 @@ class WuggyGenerator():
             &#34;phonetic_english_cmu&#34;,
             &#34;phonetic_french&#34;,
             &#34;phonetic_italian&#34;]
-        self.__official_language_plugin_repository_url = &#34;https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master/&#34;
+        self.__official_language_plugin_repository_url = &#34;https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master&#34;
         self.attribute_subchain = None
         self.frequency_subchain = None
         self.reference_sequence = None
@@ -210,8 +210,9 @@ class WuggyGenerator():
 
         print(
             f&#34;Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...&#34;)
-
+        
         py_file_name = f&#34;{language_plugin_name}.py&#34;
+        print(f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
         py_file = urlopen(
             f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
 
@@ -729,7 +730,7 @@ class WuggyGenerator():
             &#34;phonetic_english_cmu&#34;,
             &#34;phonetic_french&#34;,
             &#34;phonetic_italian&#34;]
-        self.__official_language_plugin_repository_url = &#34;https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master/&#34;
+        self.__official_language_plugin_repository_url = &#34;https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master&#34;
         self.attribute_subchain = None
         self.frequency_subchain = None
         self.reference_sequence = None
@@ -845,8 +846,9 @@ class WuggyGenerator():
 
         print(
             f&#34;Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...&#34;)
-
+        
         py_file_name = f&#34;{language_plugin_name}.py&#34;
+        print(f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
         py_file = urlopen(
             f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
 
@@ -1329,7 +1331,7 @@ class WuggyGenerator():
 <h3>Static methods</h3>
 <dl>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.remove_downloaded_language_plugins"><code class="name flex">
-<span>def <span class="ident">remove_downloaded_language_plugins</span></span>(<span>) ‑> NoneType</span>
+<span>def <span class="ident">remove_downloaded_language_plugins</span></span>(<span>) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Removes all downloaded (official) language plugins.
@@ -1355,7 +1357,7 @@ def remove_downloaded_language_plugins() -&gt; None:
 <h3>Methods</h3>
 <dl>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_frequency_filter"><code class="name flex">
-<span>def <span class="ident">apply_frequency_filter</span></span>(<span>self) ‑> NoneType</span>
+<span>def <span class="ident">apply_frequency_filter</span></span>(<span>self) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Apply the previously set frequency filter.</p></div>
@@ -1376,7 +1378,7 @@ def remove_downloaded_language_plugins() -&gt; None:
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.apply_statistics"><code class="name flex">
-<span>def <span class="ident">apply_statistics</span></span>(<span>self, sequence: str = None) ‑> NoneType</span>
+<span>def <span class="ident">apply_statistics</span></span>(<span>self, sequence: str = None) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Apply all statistics which were set beforehand.</p></div>
@@ -1406,7 +1408,7 @@ def remove_downloaded_language_plugins() -&gt; None:
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_attribute_filters"><code class="name flex">
-<span>def <span class="ident">clear_attribute_filters</span></span>(<span>self) ‑> NoneType</span>
+<span>def <span class="ident">clear_attribute_filters</span></span>(<span>self) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Remove all set attribute filters.</p></div>
@@ -1422,7 +1424,7 @@ def remove_downloaded_language_plugins() -&gt; None:
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_frequency_filter"><code class="name flex">
-<span>def <span class="ident">clear_frequency_filter</span></span>(<span>self) ‑> NoneType</span>
+<span>def <span class="ident">clear_frequency_filter</span></span>(<span>self) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Clear the previously set frequency filter.</p></div>
@@ -1439,7 +1441,7 @@ def remove_downloaded_language_plugins() -&gt; None:
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.clear_statistics"><code class="name flex">
-<span>def <span class="ident">clear_statistics</span></span>(<span>self) ‑> NoneType</span>
+<span>def <span class="ident">clear_statistics</span></span>(<span>self) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Clear all the statistics set previously.</p></div>
@@ -1455,7 +1457,7 @@ def remove_downloaded_language_plugins() -&gt; None:
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.download_language_plugin"><code class="name flex">
-<span>def <span class="ident">download_language_plugin</span></span>(<span>self, language_plugin_name: str, auto_download=False) ‑> NoneType</span>
+<span>def <span class="ident">download_language_plugin</span></span>(<span>self, language_plugin_name: str, auto_download=False) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Downloads and saves given language plugin to local storage from the corresponding official file repository.
@@ -1507,8 +1509,9 @@ If you need to ensure your Wuggy script works on any machine without user confir
 
     print(
         f&#34;Wuggy is currently downloading the plugin {language_plugin_name} for you from the official repository...&#34;)
-
+    
     py_file_name = f&#34;{language_plugin_name}.py&#34;
+    print(f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
     py_file = urlopen(
         f&#34;{self.__official_language_plugin_repository_url}/{language_plugin_name}/{py_file_name}&#34;)
 
@@ -1530,7 +1533,7 @@ If you need to ensure your Wuggy script works on any machine without user confir
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.export_classic_pseudoword_matches_to_csv"><code class="name flex">
-<span>def <span class="ident">export_classic_pseudoword_matches_to_csv</span></span>(<span>self, pseudoword_matches: [typing.Dict], csv_path: str) ‑> NoneType</span>
+<span>def <span class="ident">export_classic_pseudoword_matches_to_csv</span></span>(<span>self, pseudoword_matches: [typing.Dict], csv_path: str) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Helper function to export generated pseudoword matches from generate_classic to CSV.
@@ -1591,7 +1594,7 @@ The dictionairies from the matches are flattened before exporting to CSV.</p>
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate_advanced"><code class="name flex">
-<span>def <span class="ident">generate_advanced</span></span>(<span>self, clear_cache: bool = True) ‑> Union[Generator[str, NoneType, NoneType], Generator[tuple, NoneType, NoneType]]</span>
+<span>def <span class="ident">generate_advanced</span></span>(<span>self, clear_cache: bool = True) ‑> Union[Generator[str, None, None], Generator[tuple, None, None]]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Creates a custom generator which can be iterated to return generated pseudowords.
@@ -1702,7 +1705,7 @@ def generate_advanced(self, clear_cache: bool = True) -&gt; Union[Generator[str,
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.generate_classic"><code class="name flex">
-<span>def <span class="ident">generate_classic</span></span>(<span>self, input_sequences: [<class 'str'>], ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10, subsyllabic_segment_overlap_ratio: Union[fractions.Fraction, NoneType] = Fraction(2, 3), match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True, output_mode: str = 'plain', concentric_search: bool = True) ‑> [typing.Dict]</span>
+<span>def <span class="ident">generate_classic</span></span>(<span>self, input_sequences: [<class 'str'>], ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10, subsyllabic_segment_overlap_ratio: Optional[fractions.Fraction] = Fraction(2, 3), match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True, output_mode: str = 'plain', concentric_search: bool = True) ‑> [typing.Dict]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
@@ -1842,7 +1845,7 @@ def generate_classic(
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.load"><code class="name flex">
-<span>def <span class="ident">load</span></span>(<span>self, language_plugin_name: str, local_language_plugin: <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="../plugins/baselanguageplugin.html#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a> = None) ‑> NoneType</span>
+<span>def <span class="ident">load</span></span>(<span>self, language_plugin_name: str, local_language_plugin: <a title="wuggy.plugins.baselanguageplugin.BaseLanguagePlugin" href="../plugins/baselanguageplugin.html#wuggy.plugins.baselanguageplugin.BaseLanguagePlugin">BaseLanguagePlugin</a> = None) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Loads in a language plugin, if available, and stores the corresponding bigramchains.</p>
@@ -1899,7 +1902,7 @@ def generate_classic(
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.lookup_reference_segments"><code class="name flex">
-<span>def <span class="ident">lookup_reference_segments</span></span>(<span>self, reference: str) ‑> Union[str, NoneType]</span>
+<span>def <span class="ident">lookup_reference_segments</span></span>(<span>self, reference: str) ‑> Optional[str]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Look up a given reference (word) from the currently active lookup lexicon.
@@ -1919,7 +1922,7 @@ This should be used before setting a word as a reference sequence.</p></div>
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_all_statistics"><code class="name flex">
-<span>def <span class="ident">set_all_statistics</span></span>(<span>self) ‑> NoneType</span>
+<span>def <span class="ident">set_all_statistics</span></span>(<span>self) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Enable all statistics supported by the current active language plugin.
@@ -1937,7 +1940,7 @@ Enabling all statistics increases word generation computation time, especially f
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filter"><code class="name flex">
-<span>def <span class="ident">set_attribute_filter</span></span>(<span>self, name: str) ‑> NoneType</span>
+<span>def <span class="ident">set_attribute_filter</span></span>(<span>self, name: str) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Set an attribute filter supported by the currently activated language plugin.</p></div>
@@ -1958,7 +1961,7 @@ Enabling all statistics increases word generation computation time, especially f
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_attribute_filters"><code class="name flex">
-<span>def <span class="ident">set_attribute_filters</span></span>(<span>self, names: [<class 'str'>]) ‑> NoneType</span>
+<span>def <span class="ident">set_attribute_filters</span></span>(<span>self, names: [<class 'str'>]) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Set attribute filters supported by the currently activated language plugin.</p></div>
@@ -1975,7 +1978,7 @@ Enabling all statistics increases word generation computation time, especially f
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_frequency_filter"><code class="name flex">
-<span>def <span class="ident">set_frequency_filter</span></span>(<span>self, lower: int, upper: int) ‑> NoneType</span>
+<span>def <span class="ident">set_frequency_filter</span></span>(<span>self, lower: int, upper: int) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Sets the frequency filter for concentric search.
@@ -1993,7 +1996,7 @@ Stricter search (small values for lower and upper) result in faster word generat
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_output_mode"><code class="name flex">
-<span>def <span class="ident">set_output_mode</span></span>(<span>self, name: str) ‑> NoneType</span>
+<span>def <span class="ident">set_output_mode</span></span>(<span>self, name: str) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Set an output mode supported by the currently activated language plugin.</p></div>
@@ -2011,7 +2014,7 @@ Stricter search (small values for lower and upper) result in faster word generat
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_reference_sequence"><code class="name flex">
-<span>def <span class="ident">set_reference_sequence</span></span>(<span>self, sequence: str) ‑> NoneType</span>
+<span>def <span class="ident">set_reference_sequence</span></span>(<span>self, sequence: str) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Set the reference sequence.
@@ -2038,7 +2041,7 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistic"><code class="name flex">
-<span>def <span class="ident">set_statistic</span></span>(<span>self, name: str) ‑> NoneType</span>
+<span>def <span class="ident">set_statistic</span></span>(<span>self, name: str) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Enable a statistic based on its name.</p></div>
@@ -2056,7 +2059,7 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 </details>
 </dd>
 <dt id="wuggy.generators.wuggygenerator.WuggyGenerator.set_statistics"><code class="name flex">
-<span>def <span class="ident">set_statistics</span></span>(<span>self, names: [<class 'str'>]) ‑> NoneType</span>
+<span>def <span class="ident">set_statistics</span></span>(<span>self, names: [<class 'str'>]) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Enables statistics based on their names.</p></div>
@@ -2135,7 +2138,7 @@ def set_reference_sequence(self, sequence: str) -&gt; None:
 </nav>
 </main>
 <footer id="footer">
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
 </footer>
 </body>
 </html>

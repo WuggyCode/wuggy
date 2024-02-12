@@ -17,7 +17,7 @@ Please refer to the [Wuggy Site](https://wuggycode.github.io/wuggy/) for install
    If you'd like to add the submodules after cloning without `--recurse-submodules`, use `git submodule update --init --recursive`.
 
 2. Run `pip install -r dev-requirements.txt`. Note that some dependencies may require C extensions: pay close attention to any error messages you may receive during installation.
-   Make sure you run this command using Python >= 3.6, optionally within a virtual environment.
+   Make sure you run this command using Python >= 3.8, optionally within a virtual environment.
 
 ### Generate documentation
 

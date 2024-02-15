@@ -52,6 +52,7 @@ class WuggyGenerator():
         self.bigramchain = None
         self.bigramchains = {}
         self.supported_official_language_plugin_names = [
+            "orthographic_basque",
             "orthographic_dutch",
             "orthographic_english",
             "orthographic_french",
@@ -62,6 +63,7 @@ class WuggyGenerator():
             "orthographic_serbian_latin",
             "orthographic_spanish",
             "orthographic_vietnamese",
+            "orthographic_estonian",
             "phonetic_english_celex",
             "phonetic_english_cmu",
             "phonetic_french",

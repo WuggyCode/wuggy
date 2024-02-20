@@ -8,7 +8,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="wuggy",
-    version="1.1.1",
+    version="1.1.2",
     author="Emmanuel Keuleers",
     author_email="E.A.Keuleers@tilburguniversity.edu",
     description="Wuggy: A multilingual pseudoword generator",

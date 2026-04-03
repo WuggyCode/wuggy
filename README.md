@@ -6,6 +6,13 @@
 
 Wuggy is a pseudoword generator particularly geared towards making nonwords for psycholinguistic experiments. Wuggy makes pseudowords in, but not limited to, Basque, Dutch, English, French, German, Serbian (Cyrillic and Latin), Spanish, and Vietnamese.
 
+# Download
+
+Pre-built desktop apps are available on the [GitHub Releases page](https://github.com/WuggyCode/wuggy/releases):
+
+- **macOS** — download `Wuggy-<version>.dmg`, open it, and drag Wuggy to your Applications folder.
+- **Windows** — download `Wuggy-<version>-windows.zip`, extract it, and run `Wuggy.exe`.
+
 # Installation & Guide
 
 Please refer to the [Wuggy Site](https://wuggycode.github.io/wuggy/) for installation and usage instructions.

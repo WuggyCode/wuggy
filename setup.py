@@ -17,6 +17,9 @@ setuptools.setup(
     url="https://github.com/WuggyCode/wuggy",
     packages=setuptools.find_packages(),
     install_requires=requirements,
+    extras_require={
+        "gui": ["flask>=2.0", "pywebview>=4.0"],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

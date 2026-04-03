@@ -110,15 +110,16 @@ coll = COLLECT(
     name='Wuggy',
 )
 
-app = BUNDLE(
-    coll,
-    name='Wuggy.app',
-    icon='assets/wuggy.icns',
-    bundle_identifier='org.wuggycode.wuggy',
-    info_plist={
-        'CFBundleDisplayName': 'Wuggy',
-        'CFBundleShortVersionString': '1.2.0',
-        'NSHighResolutionCapable': True,
-        'NSRequiresAquaSystemAppearance': False,  # allow dark mode
-    },
-)
+if os.sys.platform == 'darwin':
+    app = BUNDLE(
+        coll,
+        name='Wuggy.app',
+        icon='assets/wuggy.icns',
+        bundle_identifier='org.wuggycode.wuggy',
+        info_plist={
+            'CFBundleDisplayName': 'Wuggy',
+            'CFBundleShortVersionString': '1.2.0',
+            'NSHighResolutionCapable': True,
+            'NSRequiresAquaSystemAppearance': False,  # allow dark mode
+        },
+    )

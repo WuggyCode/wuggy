@@ -10,6 +10,50 @@ Wuggy is a pseudoword generator particularly geared towards making nonwords for 
 
 Please refer to the [Wuggy Site](https://wuggycode.github.io/wuggy/) for installation and usage instructions.
 
+# GUI
+
+Wuggy includes a browser-based graphical interface built on Flask and pywebview. It supports all languages, lets you syllabify and generate pseudowords interactively, and exports results to CSV.
+
+### Running the GUI
+
+1. Install the GUI dependencies:
+   ```
+   pip install -r requirements-gui.txt
+   ```
+
+2. Launch the GUI from the repository root:
+   ```
+   python run_gui.py
+   ```
+   This opens a native desktop window (powered by pywebview).
+
+### Launch options
+
+| Flag | Description |
+|------|-------------|
+| *(none)* | Opens a native desktop window |
+| `--browser` | Starts the Flask server and opens your default browser |
+| `--server` | Starts Flask only — no window or browser (useful for remote/headless use) |
+| `--port PORT` | Use a specific port (default: auto) |
+| `--host HOST` | Bind to a specific host (default: `127.0.0.1`) |
+
+### macOS app bundle
+
+A standalone `.app` and `.dmg` can be built with PyInstaller:
+
+```
+pip install pyinstaller
+pyinstaller wuggy.spec --noconfirm
+```
+
+Or use the convenience script (requires [create-dmg](https://github.com/create-dmg/create-dmg)):
+
+```
+./build_dmg.sh
+```
+
+The output is `dist/Wuggy-1.2.0.dmg`.
+
 # Development Environment
 
 1. To clone the repository, use `git clone --recurse-submodules https://github.com/WuggyCode/wuggy`.

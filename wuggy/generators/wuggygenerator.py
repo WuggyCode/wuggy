@@ -1,8 +1,10 @@
 import codecs
 import copy
 import importlib
+import importlib.util
 import inspect
 import os
+import sys
 from collections import defaultdict, namedtuple
 from csv import writer
 from fractions import Fraction
@@ -14,6 +16,40 @@ from time import time
 from typing import Dict, Generator, Optional, Union
 from urllib.request import urlopen
 from warnings import warn
+
+
+def _language_plugins_base_dir() -> Path:
+    """
+    Return the directory that contains (or will contain) downloaded language
+    plugin folders.
+
+    When running as a PyInstaller bundle the source tree is read-only, so we
+    store user-downloaded plugins in the OS user-data directory instead:
+      macOS  : ~/Library/Application Support/Wuggy/language_data
+      Windows: %APPDATA%\\Wuggy\\language_data
+      Other  : ~/.local/share/Wuggy/language_data
+    The bundled plugins (shipped inside the .app) are in sys._MEIPASS and are
+    used as a read-only fallback via the BUNDLED_PLUGINS_DIR constant below.
+
+    When running from source the original location is used so that nothing
+    changes for library users.
+    """
+    if getattr(sys, 'frozen', False):
+        if sys.platform == 'darwin':
+            base = Path.home() / 'Library' / 'Application Support' / 'Wuggy'
+        elif sys.platform == 'win32':
+            base = Path(os.environ.get('APPDATA', Path.home())) / 'Wuggy'
+        else:
+            base = Path.home() / '.local' / 'share' / 'Wuggy'
+        return base / 'language_data'
+    return Path(__file__).parents[1] / 'plugins' / 'language_data'
+
+
+# When frozen, bundled languages are inside the .app at this path (read-only).
+_BUNDLED_PLUGINS_DIR = (
+    Path(sys._MEIPASS) / 'wuggy' / 'plugins' / 'language_data'
+    if getattr(sys, 'frozen', False) else None
+)
 
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
 from ..utilities.bigramchain import BigramChain
@@ -110,17 +146,35 @@ class WuggyGenerator():
                 raise ValueError(
                     "This language is not officially supported by Wuggy at this moment. If this is a local plugin, pass the local_language_plugin")
             self.language_plugin_name = language_plugin_name
-            language_plugins_folder_dirname = os.path.join(
-                Path(__file__).parents[1], "plugins", "language_data")
-            self.language_plugin_data_path = os.path.join(
-                language_plugins_folder_dirname, language_plugin_name)
-            if not os.path.exists(self.language_plugin_data_path):
-                self.download_language_plugin(
-                    language_plugin_name)
+            user_plugin_path = _language_plugins_base_dir() / language_plugin_name
+            bundled_plugin_path = (
+                _BUNDLED_PLUGINS_DIR / language_plugin_name
+                if _BUNDLED_PLUGINS_DIR is not None else None
+            )
+            if user_plugin_path.exists():
+                self.language_plugin_data_path = str(user_plugin_path)
+            elif bundled_plugin_path is not None and bundled_plugin_path.exists():
+                self.language_plugin_data_path = str(bundled_plugin_path)
+            else:
+                self.download_language_plugin(language_plugin_name)
             # Official language plugins MUST have the class name "OfficialLanguagePlugin"!
-            language_plugin = importlib.import_module(
-                f".plugins.language_data.{language_plugin_name}.{language_plugin_name}",
-                "wuggy").OfficialLanguagePlugin()
+            # Bundled plugins (source or frozen bundle) are importable as package modules.
+            # User-downloaded plugins live outside the package and must be loaded from file.
+            is_user_downloaded = Path(self.language_plugin_data_path) == user_plugin_path
+            if is_user_downloaded:
+                # Load from file, injecting the wuggy package so relative imports work
+                import types
+                plugin_path = Path(self.language_plugin_data_path) / f"{language_plugin_name}.py"
+                pkg_name = f"wuggy.plugins.language_data.{language_plugin_name}"
+                spec = importlib.util.spec_from_file_location(pkg_name, plugin_path)
+                mod = types.ModuleType(pkg_name)
+                mod.__package__ = "wuggy.plugins.language_data"
+                spec.loader.exec_module(mod)
+                language_plugin = mod.OfficialLanguagePlugin()
+            else:
+                language_plugin = importlib.import_module(
+                    f".plugins.language_data.{language_plugin_name}.{language_plugin_name}",
+                    "wuggy").OfficialLanguagePlugin()
 
         if language_plugin_name not in self.bigramchains:
             default_data_path = os.path.join(
@@ -140,7 +194,7 @@ class WuggyGenerator():
         Useful to cleanup after an experiment or to remove corrupt language plugins.
         """
         try:
-            rmtree(os.path.join(Path(__file__).parents[1], "plugins", "language_data"))
+            rmtree(_language_plugins_base_dir())
         except FileNotFoundError as err:
             raise FileNotFoundError(
                 "The official language plugin folder is already removed.") from err
@@ -172,13 +226,10 @@ class WuggyGenerator():
                 else:
                     break
 
-        language_plugins_folder_dirname = os.path.join(
-            Path(__file__).parents[1], "plugins", "language_data")
-        if not os.path.exists(language_plugins_folder_dirname):
-            os.makedirs(language_plugins_folder_dirname)
+        language_plugins_folder_dirname = _language_plugins_base_dir()
+        language_plugins_folder_dirname.mkdir(parents=True, exist_ok=True)
 
-        self.language_plugin_data_path = os.path.join(
-            language_plugins_folder_dirname, language_plugin_name)
+        self.language_plugin_data_path = str(language_plugins_folder_dirname / language_plugin_name)
         if not os.path.exists(self.language_plugin_data_path):
             os.makedirs(self.language_plugin_data_path)
 
@@ -575,6 +626,100 @@ class WuggyGenerator():
                 match.update({"statistics": self.statistics,
                               "difference_statistics": self.difference_statistics})
 
+                pseudoword_matches.append(copy.deepcopy(match))
+                if len(pseudoword_matches) >= ncandidates_per_sequence:
+                    return pseudoword_matches
+
+    @_loaded_language_plugin_required
+    def generate_gui(
+            self, input_sequences: [str],
+            ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10,
+            subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
+            match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
+            output_mode: str = "plain", concentric_search: bool = True,
+            output_type: str = "pseudowords") -> [Dict]:
+        """
+        Variant of generate_classic tailored for GUI use.
+        Identical to generate_classic except for the output_type parameter, which controls
+        lexicality filtering:
+            "pseudowords" — only nonwords (default, matches generate_classic behaviour)
+            "words"       — only real words
+            "both"        — no lexicality filter
+        Also supports injecting a pre-syllabified form for words not in the lexicon via
+        the lookup_lexicon (set externally before calling).
+        """
+        pseudoword_matches = []
+        for input_sequence in input_sequences:
+            pseudoword_matches.extend(
+                self.__generate_gui_inner(
+                    input_sequence,
+                    ncandidates_per_sequence,
+                    max_search_time_per_sequence,
+                    subsyllabic_segment_overlap_ratio,
+                    match_subsyllabic_segment_length,
+                    match_letter_length, output_mode, concentric_search,
+                    output_type))
+        return pseudoword_matches
+
+    def __generate_gui_inner(
+            self, input_sequence: str, ncandidates_per_sequence: int, max_search_time: int,
+            subsyllabic_segment_overlap_ratio: Union[Fraction, None],
+            match_subsyllabic_segment_length: bool, match_letter_length: bool, output_mode: str,
+            concentric_search: bool, output_type: str):
+        self.__clear_sequence_cache()
+        self.clear_attribute_filters()
+        self.clear_frequency_filter()
+        input_sequence_segments = self.lookup_reference_segments(input_sequence)
+        if input_sequence_segments is None:
+            raise Exception(
+                f"Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}")
+        self.set_reference_sequence(input_sequence_segments)
+        self.set_output_mode(output_mode)
+        subchain = self.bigramchain
+        starttime = time()
+        pseudoword_matches = []
+        frequency_exponent = 1
+        if match_subsyllabic_segment_length:
+            self.set_attribute_filter("segment_length")
+            self.__apply_attribute_filters()
+            subchain = self.attribute_subchain
+        while True:
+            if concentric_search:
+                self.set_frequency_filter(
+                    2**frequency_exponent, 2**frequency_exponent)
+                frequency_exponent += 1
+                self.apply_frequency_filter()
+                subchain = self.frequency_subchain
+            subchain = subchain.clean(len(self.reference_sequence) - 1)
+            subchain.set_startkeys(self.reference_sequence)
+            for sequence in subchain.generate():
+                self.clear_statistics()
+                self.set_statistics(["overlap_ratio", "plain_length", "lexicality"])
+                if (time() - starttime) >= max_search_time:
+                    return pseudoword_matches
+                if self.language_plugin.output_plain(sequence) in self.sequence_cache:
+                    continue
+                self.current_sequence = sequence
+                self.apply_statistics()
+                if (not match_subsyllabic_segment_length and match_letter_length and self.difference_statistics["plain_length"] != 0):
+                    continue
+                if (subsyllabic_segment_overlap_ratio is not None and self.statistics["overlap_ratio"] !=
+                        subsyllabic_segment_overlap_ratio):
+                    continue
+                lexicality = self.statistics["lexicality"]
+                if output_type == "pseudowords" and lexicality == "W":
+                    continue
+                if output_type == "words" and lexicality == "N":
+                    continue
+                self.set_all_statistics()
+                self.apply_statistics()
+                self.sequence_cache.append(
+                    self.language_plugin.output_plain(sequence))
+                match = {"word": input_sequence,
+                         "segments": input_sequence_segments,
+                         "pseudoword": self.output_mode(sequence)}
+                match.update({"statistics": self.statistics,
+                              "difference_statistics": self.difference_statistics})
                 pseudoword_matches.append(copy.deepcopy(match))
                 if len(pseudoword_matches) >= ncandidates_per_sequence:
                     return pseudoword_matches

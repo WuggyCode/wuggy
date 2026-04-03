@@ -1,6 +1,5 @@
 from math import exp
 
-import statsmodels.api as sm
 from Levenshtein import distance
 
 
@@ -61,6 +60,7 @@ def ld1nn(word_sample: [str],
     if word_as_reference_level:
         probabilities = list(map(lambda x: x*-1, probabilities))
 
+    import statsmodels.api as sm
     model_data = {"probabilities": probabilities, "types": [word[1] for word in sample]}
     fit = sm.formula.glm(
         "types~(-1+probabilities)",

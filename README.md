@@ -27,13 +27,13 @@ Please refer to the [Wuggy Site](https://wuggycode.github.io/wuggy/) for install
 
 Documentation is generated using `pdoc`. To update documentation locally , run `pdoc --html --output-dir build_documentation ./wuggy --force --template-dir ./documentation/templates`. Documentation is updated automatically to the live documentation site when changes are pushed to master using GitHub Actions.
 
-### Uploading a new version to PyPi
+### Installing the library
 
-Prerequisite: ensure that `setup.py` contains the right information, including the desired version number!
+Wuggy is not currently published on PyPI. Install directly from GitHub:
 
-1. `python setup.py sdist bdist_wheel`
-2. `twine upload dist/*` (ensure dist folder does not contain old versions!) (you must enter your PyPi credentials here)
-   (for staging/testing, use `twine upload --repository testpypi dist/*` and `pip install --extra-index-url https://testpypi.python.org/pypi Wuggy`)
+```
+pip install git+https://github.com/WuggyCode/wuggy.git
+```
 
 Note: `__init__.py` is explicitly required in every folder where you want to include the folder's `.py` files in the package.
 This way the language plugins are not included in the package even if you have them downloaded on your development environment.

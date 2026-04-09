@@ -28,7 +28,6 @@
 </summary>
 <pre><code class="python">from math import exp
 
-import statsmodels.api as sm
 from Levenshtein import distance
 
 
@@ -89,6 +88,7 @@ def ld1nn(word_sample: [str],
     if word_as_reference_level:
         probabilities = list(map(lambda x: x*-1, probabilities))
 
+    import statsmodels.api as sm
     model_data = {&#34;probabilities&#34;: probabilities, &#34;types&#34;: [word[1] for word in sample]}
     fit = sm.formula.glm(
         &#34;types~(-1+probabilities)&#34;,
@@ -198,6 +198,7 @@ print(ld1nn(words, pseudowords))
     if word_as_reference_level:
         probabilities = list(map(lambda x: x*-1, probabilities))
 
+    import statsmodels.api as sm
     model_data = {&#34;probabilities&#34;: probabilities, &#34;types&#34;: [word[1] for word in sample]}
     fit = sm.formula.glm(
         &#34;types~(-1+probabilities)&#34;,

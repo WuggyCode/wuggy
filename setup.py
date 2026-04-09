@@ -8,7 +8,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="wuggy",
-    version="1.2.0",
+    version="1.1.2",
     author="Emmanuel Keuleers",
     author_email="E.A.Keuleers@tilburguniversity.edu",
     description="Wuggy: A multilingual pseudoword generator",
@@ -17,9 +17,6 @@ setuptools.setup(
     url="https://github.com/WuggyCode/wuggy",
     packages=setuptools.find_packages(),
     install_requires=requirements,
-    extras_require={
-        "gui": ["flask>=2.0", "pywebview>=4.0"],
-    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

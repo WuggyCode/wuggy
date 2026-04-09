@@ -1,3 +1,0 @@
--r requirements.txt
-flask >= 2.0
-pywebview >= 4.0

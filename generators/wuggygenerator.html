@@ -193,10 +193,10 @@ class WuggyGenerator():
                 # Load from file, injecting the wuggy package so relative imports work
                 import types
                 plugin_path = Path(self.language_plugin_data_path) / f&#34;{language_plugin_name}.py&#34;
-                pkg_name = f&#34;wuggy.plugins.language_data.{language_plugin_name}&#34;
+                pkg_name = f&#34;wuggy.plugins.language_data.{language_plugin_name}.{language_plugin_name}&#34;
                 spec = importlib.util.spec_from_file_location(pkg_name, plugin_path)
                 mod = types.ModuleType(pkg_name)
-                mod.__package__ = &#34;wuggy.plugins.language_data&#34;
+                mod.__package__ = f&#34;wuggy.plugins.language_data.{language_plugin_name}&#34;
                 spec.loader.exec_module(mod)
                 language_plugin = mod.OfficialLanguagePlugin()
             else:
@@ -940,10 +940,10 @@ class WuggyGenerator():
                 # Load from file, injecting the wuggy package so relative imports work
                 import types
                 plugin_path = Path(self.language_plugin_data_path) / f&#34;{language_plugin_name}.py&#34;
-                pkg_name = f&#34;wuggy.plugins.language_data.{language_plugin_name}&#34;
+                pkg_name = f&#34;wuggy.plugins.language_data.{language_plugin_name}.{language_plugin_name}&#34;
                 spec = importlib.util.spec_from_file_location(pkg_name, plugin_path)
                 mod = types.ModuleType(pkg_name)
-                mod.__package__ = &#34;wuggy.plugins.language_data&#34;
+                mod.__package__ = f&#34;wuggy.plugins.language_data.{language_plugin_name}&#34;
                 spec.loader.exec_module(mod)
                 language_plugin = mod.OfficialLanguagePlugin()
             else:
@@ -2201,10 +2201,10 @@ def generate_gui(
             # Load from file, injecting the wuggy package so relative imports work
             import types
             plugin_path = Path(self.language_plugin_data_path) / f&#34;{language_plugin_name}.py&#34;
-            pkg_name = f&#34;wuggy.plugins.language_data.{language_plugin_name}&#34;
+            pkg_name = f&#34;wuggy.plugins.language_data.{language_plugin_name}.{language_plugin_name}&#34;
             spec = importlib.util.spec_from_file_location(pkg_name, plugin_path)
             mod = types.ModuleType(pkg_name)
-            mod.__package__ = &#34;wuggy.plugins.language_data&#34;
+            mod.__package__ = f&#34;wuggy.plugins.language_data.{language_plugin_name}&#34;
             spec.loader.exec_module(mod)
             language_plugin = mod.OfficialLanguagePlugin()
         else:

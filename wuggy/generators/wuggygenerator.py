@@ -165,10 +165,10 @@ class WuggyGenerator():
                 # Load from file, injecting the wuggy package so relative imports work
                 import types
                 plugin_path = Path(self.language_plugin_data_path) / f"{language_plugin_name}.py"
-                pkg_name = f"wuggy.plugins.language_data.{language_plugin_name}"
+                pkg_name = f"wuggy.plugins.language_data.{language_plugin_name}.{language_plugin_name}"
                 spec = importlib.util.spec_from_file_location(pkg_name, plugin_path)
                 mod = types.ModuleType(pkg_name)
-                mod.__package__ = "wuggy.plugins.language_data"
+                mod.__package__ = f"wuggy.plugins.language_data.{language_plugin_name}"
                 spec.loader.exec_module(mod)
                 language_plugin = mod.OfficialLanguagePlugin()
             else:

@@ -1,7 +1,7 @@
 # Wuggy: A multilingual pseudoword generator
 
-<p align="center">
-<img src=https://raw.githubusercontent.com/WuggyCode/wuggy/master/assets/wuggy_simplified.svg alt="Wuggy Logo">
+<p align="left">
+<img src=https://raw.githubusercontent.com/WuggyCode/wuggy/master/assets/wuggy_simplified.svg alt="Wuggy Logo", width="200">
 </p>
 
 Wuggy is a pseudoword generator particularly geared towards making nonwords for psycholinguistic experiments. Wuggy makes pseudowords in, but not limited to, Basque, Dutch, English, Estonian, French, German, Italian, Lithuanian, Serbian (Cyrillic and Latin), Spanish, and Vietnamese.

@@ -100,6 +100,7 @@ class WuggyGenerator():
             "orthographic_spanish",
             "orthographic_vietnamese",
             "orthographic_estonian",
+            "orthographic_lithuanian",
             "phonetic_english_celex",
             "phonetic_english_cmu",
             "phonetic_french",

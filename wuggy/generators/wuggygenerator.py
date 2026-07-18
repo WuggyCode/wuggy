@@ -1,9 +1,9 @@
 import codecs
-import copy
 import importlib
 import importlib.util
 import inspect
 import os
+import pickle
 import sys
 from collections import defaultdict, namedtuple
 from csv import writer
@@ -52,7 +52,18 @@ _BUNDLED_PLUGINS_DIR = (
 )
 
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
-from ..utilities.bigramchain import BigramChain
+from ..utilities.segmentgraph import SegmentGraph
+
+
+def _copy_statistics(statistics: Dict) -> Dict:
+    """
+    Snapshot a statistics dict for inclusion in a returned match. Values
+    are scalars or per-call-created containers, so a one-level copy is
+    enough to decouple the match from the generator's mutable state.
+    """
+    return {key: (dict(value) if isinstance(value, dict)
+                  else list(value) if isinstance(value, list) else value)
+            for key, value in statistics.items()}
 
 
 def _loaded_language_plugin_required(func):
@@ -85,8 +96,8 @@ def _loaded_language_plugin_required_generator(func):
 
 class WuggyGenerator():
     def __init__(self):
-        self.bigramchain = None
-        self.bigramchains = {}
+        self.segment_graph = None
+        self.segment_graphs = {}
         self.supported_official_language_plugin_names = [
             "orthographic_basque",
             "orthographic_dutch",
@@ -106,8 +117,8 @@ class WuggyGenerator():
             "phonetic_french",
             "phonetic_italian"]
         self.__official_language_plugin_repository_url = "https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master"
-        self.attribute_subchain = None
-        self.frequency_subchain = None
+        self.attribute_subgraph = None
+        self.frequency_subgraph = None
         self.reference_sequence = None
         self.frequency_filter = None
         self.current_sequence = None
@@ -117,11 +128,11 @@ class WuggyGenerator():
         self.attribute_filters = {}
         self.default_attributes = []
         self.statistics = {}
-        self.word_lexicon = defaultdict(list)
+        self.word_lexicon = defaultdict(set)
         self.neighbor_lexicon = []
         self.reference_statistics = {}
         self.stat_cache = {}
-        self.sequence_cache = []
+        self.sequence_cache = set()
         self.difference_statistics = {}
         self.match_statistics = {}
         self.lookup_lexicon = {}
@@ -129,7 +140,7 @@ class WuggyGenerator():
     def load(self, language_plugin_name: str,
              local_language_plugin: BaseLanguagePlugin = None) -> None:
         """
-        Loads in a language plugin, if available, and stores the corresponding bigramchains.
+        Loads in a language plugin, if available, and stores the corresponding segment_graphs.
         Parameters:
             language_plugin_name: must be the exact string of an official language plugin (see self.supported_official_language_plugin_names). If you are loading in a local plugin, the name can be anything as long as it does not conflict with an already loaded plugin name.
 
@@ -177,16 +188,43 @@ class WuggyGenerator():
                     f".plugins.language_data.{language_plugin_name}.{language_plugin_name}",
                     "wuggy").OfficialLanguagePlugin()
 
-        if language_plugin_name not in self.bigramchains:
+        if language_plugin_name not in self.segment_graphs:
             default_data_path = os.path.join(
                 self.language_plugin_data_path, language_plugin.default_data)
-
-            data_file = codecs.open(default_data_path, 'r', encoding='utf-8')
-            self.bigramchains[self.language_plugin_name] = BigramChain(
-                language_plugin)
-            self.bigramchains[self.language_plugin_name].load(
-                data_file)
+            self.segment_graphs[self.language_plugin_name] = (
+                self.__load_segment_graph(language_plugin, default_data_path))
         self.__activate(self.language_plugin_name)
+
+    @staticmethod
+    def __load_segment_graph(language_plugin, data_path: str) -> SegmentGraph:
+        """
+        Load a segment graph from its data file, going through a binary
+        cache next to the data file so the text is parsed only once per
+        data file version. Cache failures fall back to parsing silently.
+        """
+        cache_path = data_path + '.graph.pkl'
+        stat = os.stat(data_path)
+        source_signature = (stat.st_mtime_ns, stat.st_size)
+        try:
+            with open(cache_path, 'rb') as f:
+                cached = pickle.load(f)
+            if cached.get('source') == source_signature:
+                return SegmentGraph.from_cache_state(
+                    language_plugin, cached['state'])
+        except (OSError, ValueError, KeyError, pickle.PickleError,
+                EOFError, AttributeError):
+            pass
+        segment_graph = SegmentGraph(language_plugin)
+        with open(data_path, 'r', encoding='utf-8') as data_file:
+            segment_graph.load(data_file)
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump({'source': source_signature,
+                             'state': segment_graph.to_cache_state()},
+                            f, protocol=pickle.HIGHEST_PROTOCOL)
+        except OSError:
+            pass
+        return segment_graph
 
     @staticmethod
     def remove_downloaded_language_plugins() -> None:
@@ -260,14 +298,14 @@ class WuggyGenerator():
 
     def __activate(self, name: str) -> None:
         """
-        Activate a language plugin by setting the corresponding bigramchains and lexicon properties.
+        Activate a language plugin by setting the corresponding segment_graphs and lexicon properties.
         This deactivates and garbage collects any previously activated language plugin.
         Should only be called internally, do not call on your own.
         """
         if isinstance(name, type(codecs)):
             name = name.__name__
-        self.bigramchain = self.bigramchains[name]
-        self.language_plugin = self.bigramchain.language_plugin
+        self.segment_graph = self.segment_graphs[name]
+        self.language_plugin = self.segment_graph.language_plugin
         self.__load_neighbor_lexicon()
         self.__load_word_lexicon()
         self.__load_lookup_lexicon()
@@ -282,18 +320,16 @@ class WuggyGenerator():
         This is currently used internally by __activate only, do not call on your own.
         """
         cutoff = 0
-        data_file = codecs.open(
-            "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_word_lexicon),
-            'r', encoding="utf-8")
-        self.word_lexicon = defaultdict(list)
-        lines = data_file.readlines()
-        for line in lines:
-            fields = line.strip().split('\t')
-            word = fields[0]
-            frequency_per_million = fields[-1]
-            if float(frequency_per_million) >= cutoff:
-                self.word_lexicon[word[0], len(word)].append(word)
-        data_file.close()
+        self.word_lexicon = defaultdict(set)
+        with open("%s/%s" % (self.language_plugin_data_path,
+                             self.language_plugin.default_word_lexicon),
+                  'r', encoding="utf-8") as data_file:
+            for line in data_file:
+                fields = line.strip().split('\t')
+                word = fields[0]
+                frequency_per_million = fields[-1]
+                if float(frequency_per_million) >= cutoff:
+                    self.word_lexicon[word[0], len(word)].add(word)
 
     def __load_neighbor_lexicon(self) -> None:
         """
@@ -301,21 +337,16 @@ class WuggyGenerator():
         This is currently used internally by __activate only, do not call on your own.
         """
         cutoff = 0
-        data_file = codecs.open(
-            "%s/%s" %
-            (self.language_plugin_data_path,
-             self.language_plugin.default_neighbor_lexicon),
-            'r',
-            encoding="utf-8")
         self.neighbor_lexicon = []
-        lines = data_file.readlines()
-        for line in lines:
-            fields = line.strip().split('\t')
-            word = fields[0]
-            frequency_per_million = fields[-1]
-            if float(frequency_per_million) >= cutoff:
-                self.neighbor_lexicon.append(word)
-        data_file.close()
+        with open("%s/%s" % (self.language_plugin_data_path,
+                             self.language_plugin.default_neighbor_lexicon),
+                  'r', encoding="utf-8") as data_file:
+            for line in data_file:
+                fields = line.strip().split('\t')
+                word = fields[0]
+                frequency_per_million = fields[-1]
+                if float(frequency_per_million) >= cutoff:
+                    self.neighbor_lexicon.append(word)
 
     def __load_lookup_lexicon(self, data_file: bool = None) -> None:
         """
@@ -324,15 +355,15 @@ class WuggyGenerator():
         """
         self.lookup_lexicon = {}
         if data_file is None:
-            data_file = codecs.open(
+            data_file = open(
                 "%s/%s" %
                 (self.language_plugin_data_path,
                  self.language_plugin.default_lookup_lexicon),
                 'r',
                 encoding="utf-8")
-        lines = data_file.readlines()
-        for line in lines:
-            fields = line.strip().split(self.language_plugin.separator)
+        separator = self.language_plugin.separator
+        for line in data_file:
+            fields = line.strip().split(separator)
             reference, representation = fields[0:2]
             self.lookup_lexicon[reference] = representation
         data_file.close()
@@ -367,11 +398,11 @@ class WuggyGenerator():
         """
         self.reference_sequence = self.language_plugin.transform(
             sequence).representation
-        self.reference_sequence_frequencies = self.bigramchain.get_frequencies(
+        self.reference_sequence_frequencies = self.segment_graph.get_frequencies(
             self.reference_sequence)
         self.__clear_stat_cache()
         for name in self.__get_statistics():
-            function = eval("self.language_plugin.statistic_%s" % (name))
+            function = getattr(self.language_plugin, 'statistic_' + name)
             self.reference_statistics[name] = function(
                 self, self.reference_sequence)
 
@@ -416,7 +447,7 @@ class WuggyGenerator():
         if sequence is None:
             sequence = self.current_sequence
         for name in self.statistics:
-            function = eval("self.language_plugin.statistic_%s" % (name))
+            function = getattr(self.language_plugin, 'statistic_' + name)
             if (sequence, name) in self.stat_cache:
                 self.statistics[name] = self.stat_cache[(sequence, name)]
             else:
@@ -445,7 +476,7 @@ class WuggyGenerator():
         """
         Clears the sequence cache. Only used by Wuggy internally.
         """
-        self.sequence_cache = []
+        self.sequence_cache = set()
 
     def list_output_modes(self) -> [str]:
         """
@@ -461,7 +492,7 @@ class WuggyGenerator():
         """
         if name not in self.list_output_modes():
             raise ValueError(f"Output mode {name} is not supported.")
-        self.output_mode = eval("self.language_plugin.output_%s" % (name))
+        self.output_mode = getattr(self.language_plugin, 'output_' + name)
 
     def set_attribute_filter(self, name: str) -> None:
         """
@@ -472,7 +503,7 @@ class WuggyGenerator():
             raise ValueError(
                 f"Attribute filter {name} is not supported.")
         self.attribute_filters[name] = reference_sequence
-        self.attribute_subchain = None
+        self.attribute_subgraph = None
 
     def set_attribute_filters(self, names: [str]) -> None:
         """
@@ -487,8 +518,8 @@ class WuggyGenerator():
         This is currently used by Wuggy internally, do not call on your own.
         """
         for attribute, reference_sequence in self.attribute_filters.items():
-            subchain = self.attribute_subchain if self.attribute_subchain is not None else self.bigramchain
-            self.attribute_subchain = subchain.attribute_filter(
+            subgraph = self.attribute_subgraph if self.attribute_subgraph is not None else self.segment_graph
+            self.attribute_subgraph = subgraph.attribute_filter(
                 reference_sequence, attribute)
 
     def clear_attribute_filters(self) -> None:
@@ -509,7 +540,7 @@ class WuggyGenerator():
         Clear the previously set frequency filter.
         """
         self.frequency_filter = None
-        self.frequency_subchain = None
+        self.frequency_subgraph = None
 
     def apply_frequency_filter(self) -> None:
         """
@@ -518,8 +549,8 @@ class WuggyGenerator():
         if self.frequency_filter is None:
             raise Exception("No frequency filter was set")
         reference_sequence, lower, upper = self.frequency_filter
-        subchain = self.attribute_subchain if self.attribute_subchain is not None else self.bigramchain
-        self.frequency_subchain = subchain.frequency_filter(
+        subgraph = self.attribute_subgraph if self.attribute_subgraph is not None else self.segment_graph
+        self.frequency_subgraph = subgraph.frequency_filter(
             reference_sequence, lower, upper)
 
     @_loaded_language_plugin_required
@@ -528,7 +559,8 @@ class WuggyGenerator():
             ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10,
             subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
             match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
-            output_mode: str = "plain", concentric_search: bool = True) -> [Dict]:
+            output_mode: str = "plain", concentric_search: bool = True,
+            search_mode: str = "exhaustive") -> [Dict]:
         """
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
@@ -549,7 +581,9 @@ class WuggyGenerator():
 
             output_mode: output mode for pseudowords, constricted by the output modes supported by the currently loaded language plugin.
 
-            concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. First, the algorithm will try to generate candidates that exactly match the transition frequencies of the reference word. Then the maximal allowed deviation in transition frequencies will increase by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.).
+            concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. The maximal allowed deviation in transition frequencies starts at +/-2 and increases by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.), so the earliest candidates are those whose transition frequencies track the reference word most closely.
+
+            search_mode: order in which candidates are drawn from the search space. "exhaustive" (default) is the classic shuffled depth-first traversal. "uniform" draws candidates in unbiased random order (uniform sampling without replacement). "weighted" draws candidates with probability proportional to the product of their transition frequencies, so the most word-like candidates tend to be found first. All modes visit each candidate at most once.
         .. include:: ../../documentation/wuggygenerator/generate_classic.md
         """
         pseudoword_matches = []
@@ -561,14 +595,15 @@ class WuggyGenerator():
                     max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
                     match_subsyllabic_segment_length,
-                    match_letter_length, output_mode, concentric_search))
+                    match_letter_length, output_mode, concentric_search,
+                    search_mode))
         return pseudoword_matches
 
     def __generate_classic_inner(
             self, input_sequence: str, ncandidates_per_sequence: int, max_search_time: int,
             subsyllabic_segment_overlap_ratio: Union[Fraction, None],
             match_subsyllabic_segment_length: bool, match_letter_length: bool, output_mode: str,
-            concentric_search: bool = True):
+            concentric_search: bool = True, search_mode: str = "exhaustive"):
         """
         Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
         Should only be used by WuggyGenerator internally.
@@ -582,24 +617,24 @@ class WuggyGenerator():
                 f"Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}")
         self.set_reference_sequence(input_sequence_segments)
         self.set_output_mode(output_mode)
-        subchain = self.bigramchain
+        subgraph = self.segment_graph
         starttime = time()
         pseudoword_matches = []
         frequency_exponent = 1
         if match_subsyllabic_segment_length:
             self.set_attribute_filter("segment_length")
             self.__apply_attribute_filters()
-            subchain = self.attribute_subchain
+            subgraph = self.attribute_subgraph
         while True:
             if concentric_search:
                 self.set_frequency_filter(
                     2**frequency_exponent, 2**frequency_exponent)
                 frequency_exponent += 1
                 self.apply_frequency_filter()
-                subchain = self.frequency_subchain
-            subchain = subchain.clean(len(self.reference_sequence) - 1)
-            subchain.set_startkeys(self.reference_sequence)
-            for sequence in subchain.generate():
+                subgraph = self.frequency_subgraph
+            subgraph = subgraph.prune(len(self.reference_sequence) - 1)
+            subgraph.set_start_vertices(self.reference_sequence)
+            for sequence in subgraph.generate(mode=search_mode):
                 # Mandatory statistics before finding a suitable match
                 self.clear_statistics()
                 self.set_statistics(["overlap_ratio", "plain_length", "lexicality"])
@@ -619,15 +654,15 @@ class WuggyGenerator():
                 # (Re)apply all statistics only if match is found: else search becomes unnecessarily slow
                 self.set_all_statistics()
                 self.apply_statistics()
-                self.sequence_cache.append(
+                self.sequence_cache.add(
                     self.language_plugin.output_plain(sequence))
                 match = {"word": input_sequence,
                          "segments": input_sequence_segments,
-                         "pseudoword": self.output_mode(sequence)}
-                match.update({"statistics": self.statistics,
-                              "difference_statistics": self.difference_statistics})
-
-                pseudoword_matches.append(copy.deepcopy(match))
+                         "pseudoword": self.output_mode(sequence),
+                         "statistics": _copy_statistics(self.statistics),
+                         "difference_statistics": _copy_statistics(
+                             self.difference_statistics)}
+                pseudoword_matches.append(match)
                 if len(pseudoword_matches) >= ncandidates_per_sequence:
                     return pseudoword_matches
 
@@ -638,7 +673,8 @@ class WuggyGenerator():
             subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
             match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
             output_mode: str = "plain", concentric_search: bool = True,
-            output_type: str = "pseudowords") -> [Dict]:
+            output_type: str = "pseudowords",
+            search_mode: str = "exhaustive") -> [Dict]:
         """
         Variant of generate_classic tailored for GUI use.
         Identical to generate_classic except for the output_type parameter, which controls
@@ -659,14 +695,15 @@ class WuggyGenerator():
                     subsyllabic_segment_overlap_ratio,
                     match_subsyllabic_segment_length,
                     match_letter_length, output_mode, concentric_search,
-                    output_type))
+                    output_type, search_mode))
         return pseudoword_matches
 
     def __generate_gui_inner(
             self, input_sequence: str, ncandidates_per_sequence: int, max_search_time: int,
             subsyllabic_segment_overlap_ratio: Union[Fraction, None],
             match_subsyllabic_segment_length: bool, match_letter_length: bool, output_mode: str,
-            concentric_search: bool, output_type: str):
+            concentric_search: bool, output_type: str,
+            search_mode: str = "exhaustive"):
         self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
@@ -676,24 +713,24 @@ class WuggyGenerator():
                 f"Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}")
         self.set_reference_sequence(input_sequence_segments)
         self.set_output_mode(output_mode)
-        subchain = self.bigramchain
+        subgraph = self.segment_graph
         starttime = time()
         pseudoword_matches = []
         frequency_exponent = 1
         if match_subsyllabic_segment_length:
             self.set_attribute_filter("segment_length")
             self.__apply_attribute_filters()
-            subchain = self.attribute_subchain
+            subgraph = self.attribute_subgraph
         while True:
             if concentric_search:
                 self.set_frequency_filter(
                     2**frequency_exponent, 2**frequency_exponent)
                 frequency_exponent += 1
                 self.apply_frequency_filter()
-                subchain = self.frequency_subchain
-            subchain = subchain.clean(len(self.reference_sequence) - 1)
-            subchain.set_startkeys(self.reference_sequence)
-            for sequence in subchain.generate():
+                subgraph = self.frequency_subgraph
+            subgraph = subgraph.prune(len(self.reference_sequence) - 1)
+            subgraph.set_start_vertices(self.reference_sequence)
+            for sequence in subgraph.generate(mode=search_mode):
                 self.clear_statistics()
                 self.set_statistics(["overlap_ratio", "plain_length", "lexicality"])
                 if (time() - starttime) >= max_search_time:
@@ -714,52 +751,56 @@ class WuggyGenerator():
                     continue
                 self.set_all_statistics()
                 self.apply_statistics()
-                self.sequence_cache.append(
+                self.sequence_cache.add(
                     self.language_plugin.output_plain(sequence))
                 match = {"word": input_sequence,
                          "segments": input_sequence_segments,
-                         "pseudoword": self.output_mode(sequence)}
-                match.update({"statistics": self.statistics,
-                              "difference_statistics": self.difference_statistics})
-                pseudoword_matches.append(copy.deepcopy(match))
+                         "pseudoword": self.output_mode(sequence),
+                         "statistics": _copy_statistics(self.statistics),
+                         "difference_statistics": _copy_statistics(
+                             self.difference_statistics)}
+                pseudoword_matches.append(match)
                 if len(pseudoword_matches) >= ncandidates_per_sequence:
                     return pseudoword_matches
 
     @_loaded_language_plugin_required_generator
-    def generate_advanced(self, clear_cache: bool = True) -> Union[Generator[str, None, None],
-                                                                   Generator[tuple, None, None]]:
+    def generate_advanced(self, clear_cache: bool = True,
+                          mode: str = "exhaustive") -> Union[Generator[str, None, None],
+                                                             Generator[tuple, None, None]]:
         """
         Creates a custom generator which can be iterated to return generated pseudowords.
         The generator's settings, such as output statistics, should be set by you before calling this method.
         If attributes such as \"output_mode\" are not set, sensible defaults are used.
         Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
+        Parameters:
+            mode: order in which sequences are drawn from the search space. "exhaustive" (default) is the classic shuffled depth-first traversal. "uniform" yields every sequence exactly once in unbiased random order. "weighted" yields every sequence exactly once, sampled without replacement proportionally to the product of its transition frequencies, so the most word-like sequences tend to arrive first.
         .. include:: ../../documentation/wuggygenerator/generate_advanced.md
         """
         if clear_cache:
             self.__clear_sequence_cache()
         if self.output_mode is None:
             self.set_output_mode("plain")
-        if len(self.attribute_filters) == 0 and self.frequency_subchain is None:
-            subchain = self.bigramchain
+        if len(self.attribute_filters) == 0 and self.frequency_subgraph is None:
+            subgraph = self.segment_graph
         if len(self.attribute_filters) != 0:
-            if self.attribute_subchain is None:
+            if self.attribute_subgraph is None:
                 self.__apply_attribute_filters()
-            subchain = self.attribute_subchain
+            subgraph = self.attribute_subgraph
         if self.frequency_filter is not None:
             self.apply_frequency_filter()
-            subchain = self.frequency_subchain
+            subgraph = self.frequency_subgraph
         if self.reference_sequence is not None:
-            subchain = subchain.clean(len(self.reference_sequence) - 1)
-            subchain.set_startkeys(self.reference_sequence)
+            subgraph = subgraph.prune(len(self.reference_sequence) - 1)
+            subgraph.set_start_vertices(self.reference_sequence)
         else:
             warn(
                 "No reference sequence was set. Ignore this message if this was intentional.")
-            subchain.set_startkeys()
-        for sequence in subchain.generate():
+            subgraph.set_start_vertices()
+        for sequence in subgraph.generate(mode=mode):
             if self.language_plugin.output_plain(sequence) in self.sequence_cache:
                 pass
             else:
-                self.sequence_cache.append(
+                self.sequence_cache.add(
                     self.language_plugin.output_plain(sequence))
                 self.current_sequence = sequence
                 self.apply_statistics()

@@ -2,8 +2,9 @@
 from collections import namedtuple
 from fractions import Fraction
 
-# Pylint may report no-member error due to C extension
-import Levenshtein
+import numpy as np
+from rapidfuzz import process
+from rapidfuzz.distance import Levenshtein
 
 
 def compute_difference(gen_stat, ref_stat):
@@ -134,9 +135,11 @@ class BaseLanguagePlugin():
         return Levenshtein.distance(source, target)
 
     def _old(self, source, lexicon, n):
-        distances = (distance for neighbor,
-                     distance in self._neighbors(source, lexicon, n))
-        return sum(distances) / float(n)
+        distances = process.cdist(
+            [source], lexicon, scorer=Levenshtein.distance, workers=-1)[0]
+        if len(distances) > n:
+            distances = np.partition(distances, n - 1)[:n]
+        return float(distances.sum(dtype=np.int64)) / float(n)
 
     def _neighbors(self, source, lexicon, n):
         neighbors = []
@@ -146,13 +149,15 @@ class BaseLanguagePlugin():
         return neighbors[0:n]
 
     def _neighbors_at_distance(self, source, lexicon, distance):
-        neighbors = []
-        for target in lexicon:
-            if abs(len(target) - len(source)) > distance:
-                pass
-            elif Levenshtein.distance(source, target) == 1:
-                neighbors.append(target)
-        return neighbors
+        length = len(source)
+        candidates = [target for target in lexicon
+                      if abs(len(target) - length) <= distance]
+        if not candidates:
+            return []
+        distances = process.cdist(
+            [source], candidates, scorer=Levenshtein.distance,
+            score_cutoff=1, workers=-1)[0]
+        return [target for target, d in zip(candidates, distances) if d == 1]
 
     @match
     @difference
@@ -168,7 +173,7 @@ class BaseLanguagePlugin():
 
     @difference
     def statistic_transition_frequencies(self, generator, generated_sequence):
-        return generator.bigramchain.get_frequencies(generated_sequence)
+        return generator.segment_graph.get_frequencies(generated_sequence)
 
     def onsetnucleuscoda(self, orthographic_syllable, lang=None):
         self.oncpattern = lang.oncpattern

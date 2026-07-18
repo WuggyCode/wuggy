@@ -373,14 +373,8 @@ class BigramChain:
         self._invalidate_caches()
         return self
 
-    def generate(self, startkeys=None):
-        if startkeys is None:
-            startkeys = self.startkeys
-        if len(self) == 0:
-            raise Exception('LinkError')
-        adjacency = self._adjacency()
-        segments = self.node_segments
-
+    def _resolve_startkeys(self, startkeys, adjacency):
+        """[(segment value, node id or None if not in the chain), ...]"""
         starts = []
         for key in startkeys:
             node_id = self._node_id(key.position, key.value)
@@ -388,7 +382,84 @@ class BigramChain:
                 starts.append((key.value, node_id))
             else:
                 starts.append((key.value, None))
-        random.shuffle(starts)
+        return starts
+
+    def _completion_counts(self, weighted=False):
+        """
+        Per-node number of complete paths (or, when weighted, total path
+        weight as the product of edge frequencies) from the node to any
+        terminal node, over active edges. A node with no active outgoing
+        edges is a terminal and counts as one path of weight 1, matching
+        generate()'s yield condition.
+        """
+        adjacency = self._adjacency()
+        nodes = set(adjacency)
+        for children in adjacency.values():
+            nodes.update(children)
+        edges = self._edges() if weighted else None
+        counts = {}
+        for node in sorted(
+                nodes, key=lambda n: int(self.node_positions[n]),
+                reverse=True):
+            children = adjacency.get(node)
+            if not children:
+                counts[node] = 1.0 if weighted else 1
+            elif weighted:
+                counts[node] = sum(
+                    edges[(node, child)] * counts[child]
+                    for child in children)
+            else:
+                counts[node] = sum(counts[child] for child in children)
+        return counts
+
+    def count_paths(self, startkeys=None):
+        """
+        Exact number of sequences generate() would yield, without
+        generating them. Startkeys that are not part of the chain yield a
+        single one-segment sequence and therefore count as one path.
+        """
+        if startkeys is None:
+            startkeys = self.startkeys
+        counts = self._completion_counts()
+        total = 0
+        for _, node_id in self._resolve_startkeys(startkeys,
+                                                  self._adjacency()):
+            total += 1 if node_id is None else counts[node_id]
+        return total
+
+    def generate(self, startkeys=None, mode='exhaustive', rng=random):
+        """
+        Yield complete segment sequences from the (filtered) chain.
+
+        Modes:
+            'exhaustive' — depth-first traversal with shuffled edge order
+                (the classic behavior). Complete, but sequence order is
+                biased toward low-branching regions of the chain.
+            'uniform'    — every sequence exactly once, in unbiased random
+                order (uniform sampling without replacement).
+            'weighted'   — every sequence exactly once, sampled without
+                replacement with probability proportional to the product
+                of its transition frequencies, so the most word-like
+                sequences tend to arrive first.
+        """
+        if mode == 'uniform':
+            return self._generate_sampled(startkeys, weighted=False, rng=rng)
+        if mode == 'weighted':
+            return self._generate_sampled(startkeys, weighted=True, rng=rng)
+        if mode != 'exhaustive':
+            raise ValueError(f"Unknown generation mode {mode!r}")
+        return self._generate_exhaustive(startkeys, rng)
+
+    def _generate_exhaustive(self, startkeys, rng):
+        if startkeys is None:
+            startkeys = self.startkeys
+        if len(self) == 0:
+            raise Exception('LinkError')
+        adjacency = self._adjacency()
+        segments = self.node_segments
+
+        starts = self._resolve_startkeys(startkeys, adjacency)
+        rng.shuffle(starts)
 
         for start_value, start_id in starts:
             if start_id is None:
@@ -396,7 +467,7 @@ class BigramChain:
                 continue
             path = [start_id]
             children = adjacency[start_id][:]
-            random.shuffle(children)
+            rng.shuffle(children)
             stack = [iter(children)]
             while stack:
                 node_id = next(stack[-1], _SENTINEL)
@@ -408,11 +479,147 @@ class BigramChain:
                 if children:
                     path.append(node_id)
                     children = children[:]
-                    random.shuffle(children)
+                    rng.shuffle(children)
                     stack.append(iter(children))
                 else:
                     yield tuple(segments[i] for i in path) + (
                         segments[node_id],)
+
+    def _generate_sampled(self, startkeys, weighted, rng):
+        """
+        Sampling without replacement over complete paths.
+
+        The completion counts/weights below a node are shared by every
+        prefix that reaches it, so a drawn path must only be removed for
+        its own prefix. Removed paths are therefore tracked in a prefix
+        trie: during a draw, the available mass under child c is the
+        node's total (count or weight) minus what the trie records as
+        already drawn through this exact prefix. Integer counts guarantee
+        each path is yielded exactly once and the generator terminates;
+        float weights only bias the selection order in weighted mode.
+        Memory grows with the number of sequences drawn (one trie chain
+        per draw); use exhaustive mode for memory-free full drains.
+        """
+        if startkeys is None:
+            startkeys = self.startkeys
+        if len(self) == 0:
+            raise Exception('LinkError')
+        adjacency = self._adjacency()
+        segments = self.node_segments
+        edges = self._edges()
+        counts = self._completion_counts()
+        weights = self._completion_counts(weighted=True) if weighted else None
+
+        starts = self._resolve_startkeys(startkeys, adjacency)
+        # Trie node: [removed_count, removed_weight, children_by_dag_node].
+        trie_root = [0, 0.0, {}]
+        singletons_drawn = set()
+
+        def available(trie_children, node_id):
+            removed = trie_children.get(node_id)
+            return counts[node_id] - (removed[0] if removed else 0)
+
+        while True:
+            root_children = trie_root[2]
+            live = []
+            for index, (value, node_id) in enumerate(starts):
+                if node_id is None:
+                    if index not in singletons_drawn:
+                        live.append((index, value, None, 1, 1.0))
+                else:
+                    avail = available(root_children, node_id)
+                    if avail > 0:
+                        removed = root_children.get(node_id)
+                        mass = ((weights[node_id]
+                                 - (removed[1] if removed else 0.0))
+                                if weighted else float(avail))
+                        live.append((index, value, node_id, avail, mass))
+            if not live:
+                return
+
+            if weighted:
+                total_mass = sum(entry[4] for entry in live)
+                pick = rng.random() * max(total_mass, 0.0)
+                chosen = live[-1]
+                for entry in live:
+                    pick -= entry[4]
+                    if pick <= 0:
+                        chosen = entry
+                        break
+            else:
+                pick = rng.randrange(sum(entry[3] for entry in live))
+                chosen = live[-1]
+                for entry in live:
+                    pick -= entry[3]
+                    if pick < 0:
+                        chosen = entry
+                        break
+            index, value, node_id = chosen[0], chosen[1], chosen[2]
+            if node_id is None:
+                singletons_drawn.add(index)
+                yield (value,)
+                continue
+
+            path = [node_id]
+            current = node_id
+            trie_cursor = trie_root[2].get(node_id)
+            while True:
+                children = adjacency.get(current)
+                if not children:
+                    break
+                trie_children = trie_cursor[2] if trie_cursor else {}
+                live_children = []
+                for child in children:
+                    avail = available(trie_children, child)
+                    if avail <= 0:
+                        continue
+                    if weighted:
+                        removed = trie_children.get(child)
+                        mass = edges[(current, child)] * (
+                            weights[child]
+                            - (removed[1] if removed else 0.0))
+                        live_children.append((child, avail, mass))
+                    else:
+                        live_children.append((child, avail, float(avail)))
+                if weighted:
+                    total_mass = sum(mass for _, _, mass in live_children)
+                    pick = rng.random() * max(total_mass, 0.0)
+                    current = live_children[-1][0]
+                    for child, _, mass in live_children:
+                        pick -= mass
+                        if pick <= 0:
+                            current = child
+                            break
+                else:
+                    pick = rng.randrange(
+                        sum(avail for _, avail, _ in live_children))
+                    current = live_children[-1][0]
+                    for child, avail, _ in live_children:
+                        pick -= avail
+                        if pick < 0:
+                            current = child
+                            break
+                path.append(current)
+                trie_cursor = (trie_cursor[2].get(current)
+                               if trie_cursor else None)
+
+            # Record the drawn path in the trie: below position i the
+            # removed suffix weight is the product of the remaining edge
+            # frequencies (1 at the terminal).
+            suffix_weights = [1.0] * len(path)
+            for i in range(len(path) - 2, -1, -1):
+                suffix_weights[i] = (edges[(path[i], path[i + 1])]
+                                     * suffix_weights[i + 1])
+            cursor = trie_root
+            for node, suffix_weight in zip(path, suffix_weights):
+                child = cursor[2].get(node)
+                if child is None:
+                    child = [0, 0.0, {}]
+                    cursor[2][node] = child
+                child[0] += 1
+                child[1] += suffix_weight
+                cursor = child
+            yield tuple(segments[i] for i in path)
 
     def display(self):
         for key, nextkeys in sorted(self.items(), key=lambda x: x):

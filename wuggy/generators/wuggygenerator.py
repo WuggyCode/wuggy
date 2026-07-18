@@ -558,7 +558,8 @@ class WuggyGenerator():
             ncandidates_per_sequence: int = 10, max_search_time_per_sequence: int = 10,
             subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
             match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
-            output_mode: str = "plain", concentric_search: bool = True) -> [Dict]:
+            output_mode: str = "plain", concentric_search: bool = True,
+            search_mode: str = "exhaustive") -> [Dict]:
         """
         This is the classic method to generate pseudowords using Wuggy and can be called immediately after loading a language plugin.
         The defaults for this method are similar to those set in the legacy version of Wuggy, resulting in sensible pseudowords.
@@ -579,7 +580,9 @@ class WuggyGenerator():
 
             output_mode: output mode for pseudowords, constricted by the output modes supported by the currently loaded language plugin.
 
-            concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. First, the algorithm will try to generate candidates that exactly match the transition frequencies of the reference word. Then the maximal allowed deviation in transition frequencies will increase by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.).
+            concentric_search: enable/disable concentric search. Wuggy operates best and fastest when concentric search is enabled. The maximal allowed deviation in transition frequencies starts at +/-2 and increases by powers of 2 (i.e., +/-2, +/-4, +/-8, etc.), so the earliest candidates are those whose transition frequencies track the reference word most closely.
+
+            search_mode: order in which candidates are drawn from the search space. "exhaustive" (default) is the classic shuffled depth-first traversal. "uniform" draws candidates in unbiased random order (uniform sampling without replacement). "weighted" draws candidates with probability proportional to the product of their transition frequencies, so the most word-like candidates tend to be found first. All modes visit each candidate at most once.
         .. include:: ../../documentation/wuggygenerator/generate_classic.md
         """
         pseudoword_matches = []
@@ -591,14 +594,15 @@ class WuggyGenerator():
                     max_search_time_per_sequence,
                     subsyllabic_segment_overlap_ratio,
                     match_subsyllabic_segment_length,
-                    match_letter_length, output_mode, concentric_search))
+                    match_letter_length, output_mode, concentric_search,
+                    search_mode))
         return pseudoword_matches
 
     def __generate_classic_inner(
             self, input_sequence: str, ncandidates_per_sequence: int, max_search_time: int,
             subsyllabic_segment_overlap_ratio: Union[Fraction, None],
             match_subsyllabic_segment_length: bool, match_letter_length: bool, output_mode: str,
-            concentric_search: bool = True):
+            concentric_search: bool = True, search_mode: str = "exhaustive"):
         """
         Inner method for generate_classic(), which outputs a list of pseudoword matches for an input sequence.
         Should only be used by WuggyGenerator internally.
@@ -629,7 +633,7 @@ class WuggyGenerator():
                 subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
-            for sequence in subchain.generate():
+            for sequence in subchain.generate(mode=search_mode):
                 # Mandatory statistics before finding a suitable match
                 self.clear_statistics()
                 self.set_statistics(["overlap_ratio", "plain_length", "lexicality"])
@@ -668,7 +672,8 @@ class WuggyGenerator():
             subsyllabic_segment_overlap_ratio: Union[Fraction, None] = Fraction(2, 3),
             match_subsyllabic_segment_length: bool = True, match_letter_length: bool = True,
             output_mode: str = "plain", concentric_search: bool = True,
-            output_type: str = "pseudowords") -> [Dict]:
+            output_type: str = "pseudowords",
+            search_mode: str = "exhaustive") -> [Dict]:
         """
         Variant of generate_classic tailored for GUI use.
         Identical to generate_classic except for the output_type parameter, which controls
@@ -689,14 +694,15 @@ class WuggyGenerator():
                     subsyllabic_segment_overlap_ratio,
                     match_subsyllabic_segment_length,
                     match_letter_length, output_mode, concentric_search,
-                    output_type))
+                    output_type, search_mode))
         return pseudoword_matches
 
     def __generate_gui_inner(
             self, input_sequence: str, ncandidates_per_sequence: int, max_search_time: int,
             subsyllabic_segment_overlap_ratio: Union[Fraction, None],
             match_subsyllabic_segment_length: bool, match_letter_length: bool, output_mode: str,
-            concentric_search: bool, output_type: str):
+            concentric_search: bool, output_type: str,
+            search_mode: str = "exhaustive"):
         self.__clear_sequence_cache()
         self.clear_attribute_filters()
         self.clear_frequency_filter()
@@ -723,7 +729,7 @@ class WuggyGenerator():
                 subchain = self.frequency_subchain
             subchain = subchain.clean(len(self.reference_sequence) - 1)
             subchain.set_startkeys(self.reference_sequence)
-            for sequence in subchain.generate():
+            for sequence in subchain.generate(mode=search_mode):
                 self.clear_statistics()
                 self.set_statistics(["overlap_ratio", "plain_length", "lexicality"])
                 if (time() - starttime) >= max_search_time:
@@ -757,13 +763,16 @@ class WuggyGenerator():
                     return pseudoword_matches
 
     @_loaded_language_plugin_required_generator
-    def generate_advanced(self, clear_cache: bool = True) -> Union[Generator[str, None, None],
-                                                                   Generator[tuple, None, None]]:
+    def generate_advanced(self, clear_cache: bool = True,
+                          mode: str = "exhaustive") -> Union[Generator[str, None, None],
+                                                             Generator[tuple, None, None]]:
         """
         Creates a custom generator which can be iterated to return generated pseudowords.
         The generator's settings, such as output statistics, should be set by you before calling this method.
         If attributes such as \"output_mode\" are not set, sensible defaults are used.
         Note that this method is for advanced users and may result in unexpected results if handled incorrectly.
+        Parameters:
+            mode: order in which sequences are drawn from the search space. "exhaustive" (default) is the classic shuffled depth-first traversal. "uniform" yields every sequence exactly once in unbiased random order. "weighted" yields every sequence exactly once, sampled without replacement proportionally to the product of its transition frequencies, so the most word-like sequences tend to arrive first.
         .. include:: ../../documentation/wuggygenerator/generate_advanced.md
         """
         if clear_cache:
@@ -786,7 +795,7 @@ class WuggyGenerator():
             warn(
                 "No reference sequence was set. Ignore this message if this was intentional.")
             subchain.set_startkeys()
-        for sequence in subchain.generate():
+        for sequence in subchain.generate(mode=mode):
             if self.language_plugin.output_plain(sequence) in self.sequence_cache:
                 pass
             else:

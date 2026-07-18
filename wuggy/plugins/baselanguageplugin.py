@@ -173,7 +173,7 @@ class BaseLanguagePlugin():
 
     @difference
     def statistic_transition_frequencies(self, generator, generated_sequence):
-        return generator.bigramchain.get_frequencies(generated_sequence)
+        return generator.segment_graph.get_frequencies(generated_sequence)
 
     def onsetnucleuscoda(self, orthographic_syllable, lang=None):
         self.oncpattern = lang.oncpattern

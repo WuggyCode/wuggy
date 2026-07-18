@@ -25,7 +25,7 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(1, str(REPO / 'tests'))
 
 from wuggy import WuggyGenerator  # noqa: E402
-from wuggy.utilities.bigramchain import BigramChain  # noqa: E402
+from wuggy.utilities.segmentgraph import SegmentGraph  # noqa: E402
 from synthetic_plugin.synthetic import SyntheticLanguagePlugin  # noqa: E402
 
 DATA_DIR = REPO / 'tests' / 'synthetic_plugin'
@@ -56,9 +56,9 @@ def canonical(sequence):
         for segment in sequence)
 
 
-def edge_dump(chain):
+def edge_dump(graph):
     edges = []
-    for key, nextkeys in chain.items():
+    for key, nextkeys in graph.items():
         for nextkey, frequency in nextkeys.items():
             edges.append([key.position, list(key.value),
                           nextkey.position, list(nextkey.value),
@@ -67,14 +67,14 @@ def edge_dump(chain):
     return edges
 
 
-def startkey_dump(chain):
-    return sorted([key.position, list(key.value)] for key in chain.startkeys)
+def start_vertex_dump(graph):
+    return sorted([key.position, list(key.value)] for key in graph.start_vertices)
 
 
-def enumerate_all(chain):
-    """Fully drain chain.generate(); returns {canonical: sequence}."""
+def enumerate_all(graph):
+    """Fully drain graph.generate(); returns {canonical: sequence}."""
     sequences = {}
-    for sequence in chain.generate():
+    for sequence in graph.generate():
         sequences[canonical(sequence)] = sequence
         if len(sequences) > ENUMERATION_GUARD:
             raise RuntimeError('enumeration exceeded guard; shrink test data')
@@ -110,12 +110,12 @@ def main():
     generator = WuggyGenerator()
     generator.load('synthetic_test',
                    local_language_plugin=SyntheticLanguagePlugin())
-    result = {'chain_edges_type': edge_dump(generator.bigramchain)}
+    result = {'chain_edges_type': edge_dump(generator.segment_graph)}
 
-    token_chain = BigramChain(generator.language_plugin)
+    token_graph = SegmentGraph(generator.language_plugin)
     with codecs.open(DATA_DIR / 'data.txt', 'r', encoding='utf-8') as f:
-        token_chain.load(f, token=True)
-    result['chain_edges_token'] = edge_dump(token_chain)
+        token_graph.load(f, token=True)
+    result['chain_edges_token'] = edge_dump(token_graph)
 
     lookup = sorted(generator.lookup_lexicon.items())
     one_syllable = [w for w, seg in lookup if '-' not in seg][:5]
@@ -134,24 +134,24 @@ def main():
             'ref_statistics': jsonable(generator.reference_statistics),
         }
 
-        plain = generator.bigramchain.clean(maxpos)
-        plain.set_startkeys(reference)
-        entry['startkeys_nofilter'] = startkey_dump(plain)
+        plain = generator.segment_graph.prune(maxpos)
+        plain.set_start_vertices(reference)
+        entry['startkeys_nofilter'] = start_vertex_dump(plain)
         entry['nofilter'] = summarize(enumerate_all(plain))
 
-        attr_chain = generator.bigramchain.attribute_filter(
+        attr_subgraph = generator.segment_graph.attribute_filter(
             reference, 'segment_length')
-        attr_clean = attr_chain.clean(maxpos)
-        attr_clean.set_startkeys(reference)
-        entry['attr_edges'] = edge_dump(attr_clean)
-        attr_sequences = enumerate_all(attr_clean)
+        attr_pruned = attr_subgraph.prune(maxpos)
+        attr_pruned.set_start_vertices(reference)
+        entry['attr_edges'] = edge_dump(attr_pruned)
+        attr_sequences = enumerate_all(attr_pruned)
         entry['attr'] = summarize(attr_sequences)
         entry['attr_stats'] = capture_statistics(generator, attr_sequences)
 
-        freq_chain = attr_chain.frequency_filter(reference, 4, 4)
-        freq_clean = freq_chain.clean(maxpos)
-        freq_clean.set_startkeys(reference)
-        entry['attr_freq4'] = summarize(enumerate_all(freq_clean))
+        freq_subgraph = attr_subgraph.frequency_filter(reference, 4, 4)
+        freq_pruned = freq_subgraph.prune(maxpos)
+        freq_pruned.set_start_vertices(reference)
+        entry['attr_freq4'] = summarize(enumerate_all(freq_pruned))
 
         result['references'][word] = entry
 

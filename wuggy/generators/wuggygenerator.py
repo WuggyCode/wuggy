@@ -52,7 +52,7 @@ _BUNDLED_PLUGINS_DIR = (
 )
 
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
-from ..utilities.bigramchain import BigramChain
+from ..utilities.segmentgraph import SegmentGraph
 
 
 def _copy_statistics(statistics: Dict) -> Dict:
@@ -96,8 +96,8 @@ def _loaded_language_plugin_required_generator(func):
 
 class WuggyGenerator():
     def __init__(self):
-        self.bigramchain = None
-        self.bigramchains = {}
+        self.segment_graph = None
+        self.segment_graphs = {}
         self.supported_official_language_plugin_names = [
             "orthographic_basque",
             "orthographic_dutch",
@@ -116,8 +116,8 @@ class WuggyGenerator():
             "phonetic_french",
             "phonetic_italian"]
         self.__official_language_plugin_repository_url = "https://raw.githubusercontent.com/WuggyCode/wuggy_language_plugin_data/master"
-        self.attribute_subchain = None
-        self.frequency_subchain = None
+        self.attribute_subgraph = None
+        self.frequency_subgraph = None
         self.reference_sequence = None
         self.frequency_filter = None
         self.current_sequence = None
@@ -139,7 +139,7 @@ class WuggyGenerator():
     def load(self, language_plugin_name: str,
              local_language_plugin: BaseLanguagePlugin = None) -> None:
         """
-        Loads in a language plugin, if available, and stores the corresponding bigramchains.
+        Loads in a language plugin, if available, and stores the corresponding segment_graphs.
         Parameters:
             language_plugin_name: must be the exact string of an official language plugin (see self.supported_official_language_plugin_names). If you are loading in a local plugin, the name can be anything as long as it does not conflict with an already loaded plugin name.
 
@@ -187,43 +187,43 @@ class WuggyGenerator():
                     f".plugins.language_data.{language_plugin_name}.{language_plugin_name}",
                     "wuggy").OfficialLanguagePlugin()
 
-        if language_plugin_name not in self.bigramchains:
+        if language_plugin_name not in self.segment_graphs:
             default_data_path = os.path.join(
                 self.language_plugin_data_path, language_plugin.default_data)
-            self.bigramchains[self.language_plugin_name] = (
-                self.__load_bigramchain(language_plugin, default_data_path))
+            self.segment_graphs[self.language_plugin_name] = (
+                self.__load_segment_graph(language_plugin, default_data_path))
         self.__activate(self.language_plugin_name)
 
     @staticmethod
-    def __load_bigramchain(language_plugin, data_path: str) -> BigramChain:
+    def __load_segment_graph(language_plugin, data_path: str) -> SegmentGraph:
         """
-        Load a bigram chain from its data file, going through a binary
+        Load a segment graph from its data file, going through a binary
         cache next to the data file so the text is parsed only once per
         data file version. Cache failures fall back to parsing silently.
         """
-        cache_path = data_path + '.chain.pkl'
+        cache_path = data_path + '.graph.pkl'
         stat = os.stat(data_path)
         source_signature = (stat.st_mtime_ns, stat.st_size)
         try:
             with open(cache_path, 'rb') as f:
                 cached = pickle.load(f)
             if cached.get('source') == source_signature:
-                return BigramChain.from_cache_state(
+                return SegmentGraph.from_cache_state(
                     language_plugin, cached['state'])
         except (OSError, ValueError, KeyError, pickle.PickleError,
                 EOFError, AttributeError):
             pass
-        bigramchain = BigramChain(language_plugin)
+        segment_graph = SegmentGraph(language_plugin)
         with open(data_path, 'r', encoding='utf-8') as data_file:
-            bigramchain.load(data_file)
+            segment_graph.load(data_file)
         try:
             with open(cache_path, 'wb') as f:
                 pickle.dump({'source': source_signature,
-                             'state': bigramchain.to_cache_state()},
+                             'state': segment_graph.to_cache_state()},
                             f, protocol=pickle.HIGHEST_PROTOCOL)
         except OSError:
             pass
-        return bigramchain
+        return segment_graph
 
     @staticmethod
     def remove_downloaded_language_plugins() -> None:
@@ -297,14 +297,14 @@ class WuggyGenerator():
 
     def __activate(self, name: str) -> None:
         """
-        Activate a language plugin by setting the corresponding bigramchains and lexicon properties.
+        Activate a language plugin by setting the corresponding segment_graphs and lexicon properties.
         This deactivates and garbage collects any previously activated language plugin.
         Should only be called internally, do not call on your own.
         """
         if isinstance(name, type(codecs)):
             name = name.__name__
-        self.bigramchain = self.bigramchains[name]
-        self.language_plugin = self.bigramchain.language_plugin
+        self.segment_graph = self.segment_graphs[name]
+        self.language_plugin = self.segment_graph.language_plugin
         self.__load_neighbor_lexicon()
         self.__load_word_lexicon()
         self.__load_lookup_lexicon()
@@ -397,7 +397,7 @@ class WuggyGenerator():
         """
         self.reference_sequence = self.language_plugin.transform(
             sequence).representation
-        self.reference_sequence_frequencies = self.bigramchain.get_frequencies(
+        self.reference_sequence_frequencies = self.segment_graph.get_frequencies(
             self.reference_sequence)
         self.__clear_stat_cache()
         for name in self.__get_statistics():
@@ -502,7 +502,7 @@ class WuggyGenerator():
             raise ValueError(
                 f"Attribute filter {name} is not supported.")
         self.attribute_filters[name] = reference_sequence
-        self.attribute_subchain = None
+        self.attribute_subgraph = None
 
     def set_attribute_filters(self, names: [str]) -> None:
         """
@@ -517,8 +517,8 @@ class WuggyGenerator():
         This is currently used by Wuggy internally, do not call on your own.
         """
         for attribute, reference_sequence in self.attribute_filters.items():
-            subchain = self.attribute_subchain if self.attribute_subchain is not None else self.bigramchain
-            self.attribute_subchain = subchain.attribute_filter(
+            subgraph = self.attribute_subgraph if self.attribute_subgraph is not None else self.segment_graph
+            self.attribute_subgraph = subgraph.attribute_filter(
                 reference_sequence, attribute)
 
     def clear_attribute_filters(self) -> None:
@@ -539,7 +539,7 @@ class WuggyGenerator():
         Clear the previously set frequency filter.
         """
         self.frequency_filter = None
-        self.frequency_subchain = None
+        self.frequency_subgraph = None
 
     def apply_frequency_filter(self) -> None:
         """
@@ -548,8 +548,8 @@ class WuggyGenerator():
         if self.frequency_filter is None:
             raise Exception("No frequency filter was set")
         reference_sequence, lower, upper = self.frequency_filter
-        subchain = self.attribute_subchain if self.attribute_subchain is not None else self.bigramchain
-        self.frequency_subchain = subchain.frequency_filter(
+        subgraph = self.attribute_subgraph if self.attribute_subgraph is not None else self.segment_graph
+        self.frequency_subgraph = subgraph.frequency_filter(
             reference_sequence, lower, upper)
 
     @_loaded_language_plugin_required
@@ -616,24 +616,24 @@ class WuggyGenerator():
                 f"Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}")
         self.set_reference_sequence(input_sequence_segments)
         self.set_output_mode(output_mode)
-        subchain = self.bigramchain
+        subgraph = self.segment_graph
         starttime = time()
         pseudoword_matches = []
         frequency_exponent = 1
         if match_subsyllabic_segment_length:
             self.set_attribute_filter("segment_length")
             self.__apply_attribute_filters()
-            subchain = self.attribute_subchain
+            subgraph = self.attribute_subgraph
         while True:
             if concentric_search:
                 self.set_frequency_filter(
                     2**frequency_exponent, 2**frequency_exponent)
                 frequency_exponent += 1
                 self.apply_frequency_filter()
-                subchain = self.frequency_subchain
-            subchain = subchain.clean(len(self.reference_sequence) - 1)
-            subchain.set_startkeys(self.reference_sequence)
-            for sequence in subchain.generate(mode=search_mode):
+                subgraph = self.frequency_subgraph
+            subgraph = subgraph.prune(len(self.reference_sequence) - 1)
+            subgraph.set_start_vertices(self.reference_sequence)
+            for sequence in subgraph.generate(mode=search_mode):
                 # Mandatory statistics before finding a suitable match
                 self.clear_statistics()
                 self.set_statistics(["overlap_ratio", "plain_length", "lexicality"])
@@ -712,24 +712,24 @@ class WuggyGenerator():
                 f"Sequence {input_sequence} was not found in lexicon {self.current_language_plugin_name}")
         self.set_reference_sequence(input_sequence_segments)
         self.set_output_mode(output_mode)
-        subchain = self.bigramchain
+        subgraph = self.segment_graph
         starttime = time()
         pseudoword_matches = []
         frequency_exponent = 1
         if match_subsyllabic_segment_length:
             self.set_attribute_filter("segment_length")
             self.__apply_attribute_filters()
-            subchain = self.attribute_subchain
+            subgraph = self.attribute_subgraph
         while True:
             if concentric_search:
                 self.set_frequency_filter(
                     2**frequency_exponent, 2**frequency_exponent)
                 frequency_exponent += 1
                 self.apply_frequency_filter()
-                subchain = self.frequency_subchain
-            subchain = subchain.clean(len(self.reference_sequence) - 1)
-            subchain.set_startkeys(self.reference_sequence)
-            for sequence in subchain.generate(mode=search_mode):
+                subgraph = self.frequency_subgraph
+            subgraph = subgraph.prune(len(self.reference_sequence) - 1)
+            subgraph.set_start_vertices(self.reference_sequence)
+            for sequence in subgraph.generate(mode=search_mode):
                 self.clear_statistics()
                 self.set_statistics(["overlap_ratio", "plain_length", "lexicality"])
                 if (time() - starttime) >= max_search_time:
@@ -779,23 +779,23 @@ class WuggyGenerator():
             self.__clear_sequence_cache()
         if self.output_mode is None:
             self.set_output_mode("plain")
-        if len(self.attribute_filters) == 0 and self.frequency_subchain is None:
-            subchain = self.bigramchain
+        if len(self.attribute_filters) == 0 and self.frequency_subgraph is None:
+            subgraph = self.segment_graph
         if len(self.attribute_filters) != 0:
-            if self.attribute_subchain is None:
+            if self.attribute_subgraph is None:
                 self.__apply_attribute_filters()
-            subchain = self.attribute_subchain
+            subgraph = self.attribute_subgraph
         if self.frequency_filter is not None:
             self.apply_frequency_filter()
-            subchain = self.frequency_subchain
+            subgraph = self.frequency_subgraph
         if self.reference_sequence is not None:
-            subchain = subchain.clean(len(self.reference_sequence) - 1)
-            subchain.set_startkeys(self.reference_sequence)
+            subgraph = subgraph.prune(len(self.reference_sequence) - 1)
+            subgraph.set_start_vertices(self.reference_sequence)
         else:
             warn(
                 "No reference sequence was set. Ignore this message if this was intentional.")
-            subchain.set_startkeys()
-        for sequence in subchain.generate(mode=mode):
+            subgraph.set_start_vertices()
+        for sequence in subgraph.generate(mode=mode):
             if self.language_plugin.output_plain(sequence) in self.sequence_cache:
                 pass
             else:

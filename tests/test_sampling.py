@@ -32,8 +32,8 @@ def canonical(sequence):
         for s in sequence)
 
 
-def prepared_subchains(generator):
-    """(label, subchain, reference) for a few filter configurations."""
+def prepared_subgraphs(generator):
+    """(label, subgraph, reference) for a few filter configurations."""
     lookup = sorted(generator.lookup_lexicon.items())
     references = ([w for w, seg in lookup if '-' not in seg][:3]
                   + [w for w, seg in lookup if '-' in seg][:2])
@@ -42,56 +42,56 @@ def prepared_subchains(generator):
             generator.lookup_reference_segments(word))
         reference = generator.reference_sequence
         maxpos = len(reference) - 1
-        attr = generator.bigramchain.attribute_filter(
+        attr = generator.segment_graph.attribute_filter(
             reference, 'segment_length')
-        cleaned = attr.clean(maxpos)
-        cleaned.set_startkeys(reference)
-        yield f'{word}/attr', cleaned, reference
+        pruned = attr.prune(maxpos)
+        pruned.set_start_vertices(reference)
+        yield f'{word}/attr', pruned, reference
         banded = attr.frequency_filter(reference, 4, 4)
-        banded = banded.clean(maxpos)
-        banded.set_startkeys(reference)
+        banded = banded.prune(maxpos)
+        banded.set_start_vertices(reference)
         yield f'{word}/attr+freq4', banded, reference
 
 
 def test_permutation_equivalence_and_counts():
     generator = make_generator()
     tested = 0
-    for label, subchain, _ in prepared_subchains(generator):
-        expected = subchain.count_paths()
+    for label, subgraph, _ in prepared_subgraphs(generator):
+        expected = subgraph.count_paths()
         if expected == 0 or expected > PERMUTATION_SIZE_CAP:
             continue
-        exhaustive = [canonical(s) for s in subchain.generate()]
+        exhaustive = [canonical(s) for s in subgraph.generate()]
         assert len(exhaustive) == expected, (
             f'{label}: count_paths {expected} != exhaustive {len(exhaustive)}')
         for mode in ('uniform', 'weighted'):
             drawn = [canonical(s) for s in
-                     subchain.generate(mode=mode, rng=random.Random(7))]
+                     subgraph.generate(mode=mode, rng=random.Random(7))]
             assert len(drawn) == expected, (
                 f'{label}/{mode}: yielded {len(drawn)}, expected {expected}')
             assert set(drawn) == set(exhaustive), (
                 f'{label}/{mode}: sequence sets differ from exhaustive')
         tested += 1
-    assert tested >= 4, f'only {tested} subchains were small enough to test'
-    print(f'permutation equivalence ok over {tested} subchains')
+    assert tested >= 4, f'only {tested} subgraphs were small enough to test'
+    print(f'permutation equivalence ok over {tested} subgraphs')
 
 
 def test_seeded_determinism():
     generator = make_generator()
-    for label, subchain, _ in prepared_subchains(generator):
-        if not 0 < subchain.count_paths() <= PERMUTATION_SIZE_CAP:
+    for label, subgraph, _ in prepared_subgraphs(generator):
+        if not 0 < subgraph.count_paths() <= PERMUTATION_SIZE_CAP:
             continue
         for mode in ('uniform', 'weighted'):
             first = [canonical(s) for s in
-                     subchain.generate(mode=mode, rng=random.Random(123))]
+                     subgraph.generate(mode=mode, rng=random.Random(123))]
             second = [canonical(s) for s in
-                      subchain.generate(mode=mode, rng=random.Random(123))]
+                      subgraph.generate(mode=mode, rng=random.Random(123))]
             assert first == second, f'{label}/{mode}: seeded runs differ'
         break
     print('seeded determinism ok')
 
 
-def path_weight(subchain, sequence, reference):
-    frequencies = subchain.get_frequencies(sequence)
+def path_weight(subgraph, sequence, reference):
+    frequencies = subgraph.get_frequencies(sequence)
     weight = 1.0
     for value in frequencies.values():
         weight *= max(value, 1e-12)
@@ -100,21 +100,21 @@ def path_weight(subchain, sequence, reference):
 
 def test_weighted_mode_prefers_frequent_paths():
     generator = make_generator()
-    for label, subchain, reference in prepared_subchains(generator):
-        if not 1_000 < subchain.count_paths() <= PERMUTATION_SIZE_CAP:
+    for label, subgraph, reference in prepared_subgraphs(generator):
+        if not 1_000 < subgraph.count_paths() <= PERMUTATION_SIZE_CAP:
             continue
         head = 25
         uniform_weights, weighted_weights = [], []
         for seed in range(20):
-            drawn = subchain.generate(mode='uniform',
+            drawn = subgraph.generate(mode='uniform',
                                       rng=random.Random(seed))
             uniform_weights.extend(
-                path_weight(subchain, s, reference)
+                path_weight(subgraph, s, reference)
                 for _, s in zip(range(head), drawn))
-            drawn = subchain.generate(mode='weighted',
+            drawn = subgraph.generate(mode='weighted',
                                       rng=random.Random(seed))
             weighted_weights.extend(
-                path_weight(subchain, s, reference)
+                path_weight(subgraph, s, reference)
                 for _, s in zip(range(head), drawn))
         mean_uniform = sum(uniform_weights) / len(uniform_weights)
         mean_weighted = sum(weighted_weights) / len(weighted_weights)
@@ -124,7 +124,7 @@ def test_weighted_mode_prefers_frequent_paths():
         print(f'weighted-bias ok on {label}: mean path weight '
               f'{mean_weighted:.1f} (weighted) vs {mean_uniform:.1f} (uniform)')
         return
-    raise AssertionError('no subchain of suitable size found')
+    raise AssertionError('no subgraph of suitable size found')
 
 
 def test_generator_api_integration():
@@ -138,7 +138,7 @@ def test_generator_api_integration():
         assert matches, f'no classic matches in {search_mode} mode'
         assert all(m['statistics']['lexicality'] == 'N' for m in matches)
     # generate_classic leaves its last concentric frequency filter set;
-    # clear it so the advanced generator starts from the full chain.
+    # clear it so the advanced generator starts from the full graph.
     generator.clear_frequency_filter()
     generator.clear_attribute_filters()
     generator.set_reference_sequence(
@@ -149,7 +149,7 @@ def test_generator_api_integration():
     advanced = list(generator.generate_advanced(mode='uniform'))
     assert advanced and len(advanced) == len(set(advanced))
     try:
-        generator.bigramchain.generate(mode='nonsense')
+        generator.segment_graph.generate(mode='nonsense')
     except ValueError:
         pass
     else:

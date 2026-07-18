@@ -27,7 +27,6 @@ class BigramChain(defaultdict):
             fields = line.strip('\n\t').split(self.language_plugin.separator)
             reference, input_sequence, frequency = fields
             frequency = float(frequency) if token == True else 1
-            frequency = 1
             sequence = (self.language_plugin.transform(
                 input_sequence, frequency))
             n = len(sequence.representation)

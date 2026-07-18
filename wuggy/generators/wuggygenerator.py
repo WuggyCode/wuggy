@@ -1,9 +1,9 @@
 import codecs
-import copy
 import importlib
 import importlib.util
 import inspect
 import os
+import pickle
 import sys
 from collections import defaultdict, namedtuple
 from csv import writer
@@ -53,6 +53,17 @@ _BUNDLED_PLUGINS_DIR = (
 
 from ..plugins.baselanguageplugin import BaseLanguagePlugin
 from ..utilities.bigramchain import BigramChain
+
+
+def _copy_statistics(statistics: Dict) -> Dict:
+    """
+    Snapshot a statistics dict for inclusion in a returned match. Values
+    are scalars or per-call-created containers, so a one-level copy is
+    enough to decouple the match from the generator's mutable state.
+    """
+    return {key: (dict(value) if isinstance(value, dict)
+                  else list(value) if isinstance(value, list) else value)
+            for key, value in statistics.items()}
 
 
 def _loaded_language_plugin_required(func):
@@ -116,11 +127,11 @@ class WuggyGenerator():
         self.attribute_filters = {}
         self.default_attributes = []
         self.statistics = {}
-        self.word_lexicon = defaultdict(list)
+        self.word_lexicon = defaultdict(set)
         self.neighbor_lexicon = []
         self.reference_statistics = {}
         self.stat_cache = {}
-        self.sequence_cache = []
+        self.sequence_cache = set()
         self.difference_statistics = {}
         self.match_statistics = {}
         self.lookup_lexicon = {}
@@ -179,13 +190,40 @@ class WuggyGenerator():
         if language_plugin_name not in self.bigramchains:
             default_data_path = os.path.join(
                 self.language_plugin_data_path, language_plugin.default_data)
-
-            data_file = codecs.open(default_data_path, 'r', encoding='utf-8')
-            self.bigramchains[self.language_plugin_name] = BigramChain(
-                language_plugin)
-            self.bigramchains[self.language_plugin_name].load(
-                data_file)
+            self.bigramchains[self.language_plugin_name] = (
+                self.__load_bigramchain(language_plugin, default_data_path))
         self.__activate(self.language_plugin_name)
+
+    @staticmethod
+    def __load_bigramchain(language_plugin, data_path: str) -> BigramChain:
+        """
+        Load a bigram chain from its data file, going through a binary
+        cache next to the data file so the text is parsed only once per
+        data file version. Cache failures fall back to parsing silently.
+        """
+        cache_path = data_path + '.chain.pkl'
+        stat = os.stat(data_path)
+        source_signature = (stat.st_mtime_ns, stat.st_size)
+        try:
+            with open(cache_path, 'rb') as f:
+                cached = pickle.load(f)
+            if cached.get('source') == source_signature:
+                return BigramChain.from_cache_state(
+                    language_plugin, cached['state'])
+        except (OSError, ValueError, KeyError, pickle.PickleError,
+                EOFError, AttributeError):
+            pass
+        bigramchain = BigramChain(language_plugin)
+        with open(data_path, 'r', encoding='utf-8') as data_file:
+            bigramchain.load(data_file)
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump({'source': source_signature,
+                             'state': bigramchain.to_cache_state()},
+                            f, protocol=pickle.HIGHEST_PROTOCOL)
+        except OSError:
+            pass
+        return bigramchain
 
     @staticmethod
     def remove_downloaded_language_plugins() -> None:
@@ -281,18 +319,16 @@ class WuggyGenerator():
         This is currently used internally by __activate only, do not call on your own.
         """
         cutoff = 0
-        data_file = codecs.open(
-            "%s/%s" % (self.language_plugin_data_path, self.language_plugin.default_word_lexicon),
-            'r', encoding="utf-8")
-        self.word_lexicon = defaultdict(list)
-        lines = data_file.readlines()
-        for line in lines:
-            fields = line.strip().split('\t')
-            word = fields[0]
-            frequency_per_million = fields[-1]
-            if float(frequency_per_million) >= cutoff:
-                self.word_lexicon[word[0], len(word)].append(word)
-        data_file.close()
+        self.word_lexicon = defaultdict(set)
+        with open("%s/%s" % (self.language_plugin_data_path,
+                             self.language_plugin.default_word_lexicon),
+                  'r', encoding="utf-8") as data_file:
+            for line in data_file:
+                fields = line.strip().split('\t')
+                word = fields[0]
+                frequency_per_million = fields[-1]
+                if float(frequency_per_million) >= cutoff:
+                    self.word_lexicon[word[0], len(word)].add(word)
 
     def __load_neighbor_lexicon(self) -> None:
         """
@@ -300,21 +336,16 @@ class WuggyGenerator():
         This is currently used internally by __activate only, do not call on your own.
         """
         cutoff = 0
-        data_file = codecs.open(
-            "%s/%s" %
-            (self.language_plugin_data_path,
-             self.language_plugin.default_neighbor_lexicon),
-            'r',
-            encoding="utf-8")
         self.neighbor_lexicon = []
-        lines = data_file.readlines()
-        for line in lines:
-            fields = line.strip().split('\t')
-            word = fields[0]
-            frequency_per_million = fields[-1]
-            if float(frequency_per_million) >= cutoff:
-                self.neighbor_lexicon.append(word)
-        data_file.close()
+        with open("%s/%s" % (self.language_plugin_data_path,
+                             self.language_plugin.default_neighbor_lexicon),
+                  'r', encoding="utf-8") as data_file:
+            for line in data_file:
+                fields = line.strip().split('\t')
+                word = fields[0]
+                frequency_per_million = fields[-1]
+                if float(frequency_per_million) >= cutoff:
+                    self.neighbor_lexicon.append(word)
 
     def __load_lookup_lexicon(self, data_file: bool = None) -> None:
         """
@@ -323,15 +354,15 @@ class WuggyGenerator():
         """
         self.lookup_lexicon = {}
         if data_file is None:
-            data_file = codecs.open(
+            data_file = open(
                 "%s/%s" %
                 (self.language_plugin_data_path,
                  self.language_plugin.default_lookup_lexicon),
                 'r',
                 encoding="utf-8")
-        lines = data_file.readlines()
-        for line in lines:
-            fields = line.strip().split(self.language_plugin.separator)
+        separator = self.language_plugin.separator
+        for line in data_file:
+            fields = line.strip().split(separator)
             reference, representation = fields[0:2]
             self.lookup_lexicon[reference] = representation
         data_file.close()
@@ -370,7 +401,7 @@ class WuggyGenerator():
             self.reference_sequence)
         self.__clear_stat_cache()
         for name in self.__get_statistics():
-            function = eval("self.language_plugin.statistic_%s" % (name))
+            function = getattr(self.language_plugin, 'statistic_' + name)
             self.reference_statistics[name] = function(
                 self, self.reference_sequence)
 
@@ -415,7 +446,7 @@ class WuggyGenerator():
         if sequence is None:
             sequence = self.current_sequence
         for name in self.statistics:
-            function = eval("self.language_plugin.statistic_%s" % (name))
+            function = getattr(self.language_plugin, 'statistic_' + name)
             if (sequence, name) in self.stat_cache:
                 self.statistics[name] = self.stat_cache[(sequence, name)]
             else:
@@ -444,7 +475,7 @@ class WuggyGenerator():
         """
         Clears the sequence cache. Only used by Wuggy internally.
         """
-        self.sequence_cache = []
+        self.sequence_cache = set()
 
     def list_output_modes(self) -> [str]:
         """
@@ -460,7 +491,7 @@ class WuggyGenerator():
         """
         if name not in self.list_output_modes():
             raise ValueError(f"Output mode {name} is not supported.")
-        self.output_mode = eval("self.language_plugin.output_%s" % (name))
+        self.output_mode = getattr(self.language_plugin, 'output_' + name)
 
     def set_attribute_filter(self, name: str) -> None:
         """
@@ -618,15 +649,15 @@ class WuggyGenerator():
                 # (Re)apply all statistics only if match is found: else search becomes unnecessarily slow
                 self.set_all_statistics()
                 self.apply_statistics()
-                self.sequence_cache.append(
+                self.sequence_cache.add(
                     self.language_plugin.output_plain(sequence))
                 match = {"word": input_sequence,
                          "segments": input_sequence_segments,
-                         "pseudoword": self.output_mode(sequence)}
-                match.update({"statistics": self.statistics,
-                              "difference_statistics": self.difference_statistics})
-
-                pseudoword_matches.append(copy.deepcopy(match))
+                         "pseudoword": self.output_mode(sequence),
+                         "statistics": _copy_statistics(self.statistics),
+                         "difference_statistics": _copy_statistics(
+                             self.difference_statistics)}
+                pseudoword_matches.append(match)
                 if len(pseudoword_matches) >= ncandidates_per_sequence:
                     return pseudoword_matches
 
@@ -713,14 +744,15 @@ class WuggyGenerator():
                     continue
                 self.set_all_statistics()
                 self.apply_statistics()
-                self.sequence_cache.append(
+                self.sequence_cache.add(
                     self.language_plugin.output_plain(sequence))
                 match = {"word": input_sequence,
                          "segments": input_sequence_segments,
-                         "pseudoword": self.output_mode(sequence)}
-                match.update({"statistics": self.statistics,
-                              "difference_statistics": self.difference_statistics})
-                pseudoword_matches.append(copy.deepcopy(match))
+                         "pseudoword": self.output_mode(sequence),
+                         "statistics": _copy_statistics(self.statistics),
+                         "difference_statistics": _copy_statistics(
+                             self.difference_statistics)}
+                pseudoword_matches.append(match)
                 if len(pseudoword_matches) >= ncandidates_per_sequence:
                     return pseudoword_matches
 
@@ -758,7 +790,7 @@ class WuggyGenerator():
             if self.language_plugin.output_plain(sequence) in self.sequence_cache:
                 pass
             else:
-                self.sequence_cache.append(
+                self.sequence_cache.add(
                     self.language_plugin.output_plain(sequence))
                 self.current_sequence = sequence
                 self.apply_statistics()

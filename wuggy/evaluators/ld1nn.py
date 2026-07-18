@@ -1,6 +1,6 @@
 from math import exp
 
-from Levenshtein import distance
+from rapidfuzz.distance.Levenshtein import distance
 
 
 def ld1nn(word_sample: [str],

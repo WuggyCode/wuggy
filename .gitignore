@@ -147,3 +147,6 @@ build_documentation
 
 # Claude Code
 .claude/
+
+# Wuggy binary chain caches (written next to language data files)
+*.chain.pkl
